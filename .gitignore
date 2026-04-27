@@ -20,12 +20,13 @@ yarn-error.log*
 .docker/
 
 # Backend (Python/FastAPI/Poetry)
-backend/__pycache__/
-backend/*.py[cod]
-backend/*$py.class
-backend/.venv/
-backend/venv/
-backend/ENV/
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/.venv/
+**/.env/
+**/.venv/
+**/.ENV/
 backend/env/
 backend/build/
 backend/develop-eggs/

@@ -1,3 +1,8 @@
+ifneq ("$(wildcard .env)","")
+	include .env
+	export
+endif
+
 .PHONY: dev prod down build build-prod db-shell test-frontend test-backend clean setup
 
 dev:
@@ -16,7 +21,7 @@ build-prod:
 	docker compose -f docker-compose.prod.yml build
 
 db-shell:
-	docker compose exec db psql -U postgres -d app_db
+	docker compose exec -e PGPASSWORD=$(POSTGRES_PASSWORD) db psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 
 test-frontend:
 	docker compose exec frontend npm run test
