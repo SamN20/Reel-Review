@@ -1,7 +1,17 @@
 # Reel Review - byNolo
 
-A full-stack monorepo for movie reviews and ratings. Sister site of [Vinyl Vote](https://vinylvote.bynolo.ca).
+A cinematic, community-driven movie rating application and synchronized weekly event for the byNolo community. Sister site of [Vinyl Vote](https://vinylvote.bynolo.ca).
 
+## Core Premise
+
+Reel Review is built around a weekly event where the community watches and rates one specific movie. 
+
+- **Weekly Drop**: A new movie is revealed on Monday.
+- **Blind Voting**: Live stats are hidden during the week to prevent bias. Voting locks on Sunday night.
+- **The Film Shelf**: A dynamically sorted archive of past movies, styled like a premium streaming service.
+- **Community**: Spoiler-protected discussions, watch party coordination, and gamified engagement.
+
+For detailed planning and design specifications, see the `docs/` directory. UI mockups can be found in the `mockups/` directory.
 ## Tech Stack
 
 - **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+) with [Poetry](https://python-poetry.org/)
