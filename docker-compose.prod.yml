@@ -39,5 +39,13 @@ services:
       - frontend
       - backend
 
+  adminer:
+    image: adminer:latest
+    restart: always
+    ports:
+      - "${DB_VIEWER_PORT:-8081}:8080"
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
