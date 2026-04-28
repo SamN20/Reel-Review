@@ -93,5 +93,6 @@ def get_current_user_info(current_user: User = Depends(deps.get_current_user)):
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
-        "is_active": current_user.is_active
+        "is_active": current_user.is_active,
+        "is_admin": current_user.is_admin
     }

@@ -12,6 +12,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=True)
     
     # Preferences and stats could be added later
+    is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

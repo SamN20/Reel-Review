@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Date, Text, DateTime
+from sqlalchemy import Column, Integer, String, Date, Text, DateTime, Boolean
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
@@ -13,5 +14,12 @@ class Movie(Base):
     overview = Column(Text, nullable=True)
     poster_path = Column(String, nullable=True)
     backdrop_path = Column(String, nullable=True)
+    
+    genres = Column(JSONB, nullable=True)
+    cast = Column(JSONB, nullable=True)
+    keywords = Column(JSONB, nullable=True)
+    watch_providers = Column(JSONB, nullable=True)
+    
+    in_pool = Column(Boolean, default=False)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
