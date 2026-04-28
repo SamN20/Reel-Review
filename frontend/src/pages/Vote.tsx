@@ -49,8 +49,7 @@ export default function Vote() {
         visuals: 0,
         sound: 0,
         rewatchability: 0,
-        enjoyment: 0,
-        emotional: 0
+        enjoyment: 0
     });
     const [reviewText, setReviewText] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -84,6 +83,36 @@ export default function Vote() {
         }
     }, [API_URL, user]);
 
+    useEffect(() => {
+        const fetchMyRating = async () => {
+            if (!drop || !user) return;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get(`${API_URL}/api/v1/ratings/me/${drop.id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const r = response.data;
+                setHasWatched(r.watched_status);
+                setOverallScore(r.overall_score);
+                setIsAnonymous(r.is_anonymous);
+                setReviewText(r.review_text || "");
+                setSubScores({
+                    story: r.story_score || 0,
+                    performances: r.performances_score || 0,
+                    visuals: r.visuals_score || 0,
+                    sound: r.sound_score || 0,
+                    rewatchability: r.rewatchability_score || 0,
+                    enjoyment: r.enjoyment_score || 0
+                });
+            } catch (err: any) {
+                if (err.response?.status !== 404) {
+                    console.error("Failed to fetch existing rating", err);
+                }
+            }
+        };
+        fetchMyRating();
+    }, [drop, user, API_URL]);
+
     const handleSubmit = async () => {
         if (!drop || overallScore === 0) return;
         setSubmitting(true);
@@ -99,7 +128,6 @@ export default function Vote() {
                 sound_score: subScores.sound || null,
                 rewatchability_score: subScores.rewatchability || null,
                 enjoyment_score: subScores.enjoyment || null,
-                emotional_impact_score: subScores.emotional || null,
                 review_text: reviewText || null,
                 is_anonymous: isAnonymous,
                 has_spoilers: false // simplified for now
@@ -172,13 +200,15 @@ export default function Vote() {
                     </p>
 
                     {/* Where to Watch */}
-                    <div className="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-xl p-4 flex items-center gap-4 w-fit">
-                        <div className="w-12 h-12 bg-zinc-950 rounded-lg flex items-center justify-center border border-zinc-800 text-blue-500">
-                            <MonitorPlay size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Available to Stream (CA)</p>
-                            <p className="font-bold text-zinc-200">Crave, Club Illico</p>
+                    <div className="space-y-2">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Available to Stream</p>
+                        <div className="flex flex-wrap gap-2">
+                            <button className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                                <MonitorPlay size={14} className="text-blue-500"/> Crave
+                            </button>
+                            <button className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                                <MonitorPlay size={14} className="text-blue-500"/> Club Illico
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -235,7 +265,7 @@ export default function Vote() {
                     <hr className="border-zinc-800/50" />
 
                     {/* 3. Optional Sub-Categories */}
-                    <div className="space-y-4">
+                    <div className="w-full">
                         <button
                             onClick={() => setShowSubCategories(!showSubCategories)}
                             className="w-full flex items-center justify-between text-left group"
@@ -249,15 +279,15 @@ export default function Vote() {
                             </div>
                         </button>
 
-                        {showSubCategories && (
-                            <div className="space-y-6 pt-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                        <div className={`grid transition-all duration-300 ease-in-out ${showSubCategories ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
+                            <div className="overflow-hidden space-y-6">
                                 {[
                                     { id: 'story', label: 'Story & Pacing' },
                                     { id: 'performances', label: 'Performances' },
                                     { id: 'visuals', label: 'Visuals & Cinematography' },
                                     { id: 'sound', label: 'Sound & Score' },
+                                    { id: 'rewatchability', label: 'Rewatchability' },
                                     { id: 'enjoyment', label: 'Pure Enjoyment' },
-                                    { id: 'emotional', label: 'Emotional Impact' },
                                 ].map((cat) => (
                                     <div key={cat.id} className="space-y-2">
                                         <div className="flex items-center justify-between text-sm">
@@ -274,7 +304,7 @@ export default function Vote() {
                                     </div>
                                 ))}
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     <hr className="border-zinc-800/50" />

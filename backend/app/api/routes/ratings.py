@@ -24,17 +24,26 @@ def create_rating(
     if not drop:
         raise HTTPException(status_code=404, detail="Weekly drop not found")
 
-    # 2. Check if user already rated this drop
+    # 2. Check if vote is late
+    today = date.today()
+    is_late = today > drop.end_date
+
+    # 3. Check if user already rated this drop
     existing = db.query(Rating).filter(
         Rating.user_id == current_user.id,
         Rating.weekly_drop_id == drop.id
     ).first()
+    
     if existing:
-        raise HTTPException(status_code=400, detail="You have already rated this movie for this drop")
-
-    # 3. Check if vote is late
-    today = date.today()
-    is_late = today > drop.end_date
+        if is_late:
+            raise HTTPException(status_code=400, detail="The voting week has ended. You can no longer change your rating.")
+            
+        # Update existing
+        for key, value in rating_in.dict(exclude={'weekly_drop_id'}).items():
+            setattr(existing, key, value)
+        db.commit()
+        db.refresh(existing)
+        return existing
 
     # 4. Create rating
     rating = Rating(
@@ -48,4 +57,18 @@ def create_rating(
     db.commit()
     db.refresh(rating)
 
+    return rating
+
+@router.get("/me/{drop_id}", response_model=RatingOut)
+def get_my_rating(
+    drop_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    rating = db.query(Rating).filter(
+        Rating.user_id == current_user.id,
+        Rating.weekly_drop_id == drop_id
+    ).first()
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
     return rating
