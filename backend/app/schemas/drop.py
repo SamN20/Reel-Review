@@ -20,3 +20,7 @@ class WeeklyDropBase(BaseModel):
 class WeeklyDropOut(WeeklyDropBase):
     id: int
     movie: MovieOut
+
+class PastDropOut(WeeklyDropOut):
+    community_score: Optional[float] = None
+    user_has_rated: bool = False
