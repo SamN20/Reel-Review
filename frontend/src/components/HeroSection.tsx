@@ -27,7 +27,7 @@ export function HeroSection({
 
     if (!currentDrop) {
         return (
-            <section className="relative w-full min-h-[600px] flex items-end justify-center pb-16 md:pb-24">
+            <section className="relative w-full min-h-[max(600px,85vh)] flex items-end justify-center pb-16 md:pb-24 pt-28 md:pt-36">
                 <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(220,38,38,0.18),_transparent_35%),linear-gradient(180deg,_#18181b_0%,_#09090b_100%)]"></div>
                 <div className="absolute inset-0 z-0 opacity-30 bg-[linear-gradient(135deg,transparent_0%,transparent_48%,rgba(255,255,255,0.03)_50%,transparent_52%,transparent_100%)] bg-[length:24px_24px]"></div>
 
@@ -83,7 +83,7 @@ export function HeroSection({
         : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2025&auto=format&fit=crop";
 
     return (
-        <section className="relative w-full h-[85vh] min-h-[600px] flex items-end justify-center pb-16 md:pb-24">
+        <section className="relative w-full min-h-[max(600px,85vh)] flex items-end justify-center pb-16 md:pb-24 pt-28 md:pt-36">
             {/* Background Layer */}
             <div className="absolute inset-0 z-0">
                 <div
