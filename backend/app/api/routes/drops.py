@@ -39,9 +39,9 @@ def get_past_drops(db: Session = Depends(deps.get_db), current_user: User = Depe
     """
     today = date.today()
     past_drops = db.query(WeeklyDrop).filter(
-        WeeklyDrop.is_active == True,
-        WeeklyDrop.end_date < today
-    ).order_by(WeeklyDrop.id.desc()).all()
+        WeeklyDrop.end_date < today,
+        WeeklyDrop.movie_id.isnot(None)
+    ).order_by(WeeklyDrop.start_date.desc()).all()
 
     result = []
     for drop in past_drops:

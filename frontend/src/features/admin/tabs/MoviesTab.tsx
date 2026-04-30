@@ -132,7 +132,7 @@ export function MoviesTab() {
       {/* TMDB Import Section */}
       <div className="mb-10">
         <h2 className="text-2xl font-bold mb-4">Import from TMDB</h2>
-        <form onSubmit={handleTmdbSearch} className="mb-6 flex gap-4">
+        <form onSubmit={handleTmdbSearch} className="mb-6 flex flex-col md:flex-row gap-4">
           <input
             type="text"
             value={tmdbSearchQuery}
@@ -140,13 +140,13 @@ export function MoviesTab() {
             placeholder="Search TMDB for a movie to import..."
             className="flex-1 bg-zinc-900 border border-zinc-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-red-500 transition-colors"
           />
-          <button type="submit" className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+          <button type="submit" className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
             Search
           </button>
         </form>
 
         {tmdbSearchResults.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
             {tmdbSearchResults.map((movie) => (
               <div key={movie.id} className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 group cursor-pointer hover:border-red-500 transition-colors" onClick={() => setSelectedTmdbId(movie.id)}>
                 {movie.poster_path ? (
@@ -169,7 +169,7 @@ export function MoviesTab() {
       {/* Kanban Board */}
       <div className="mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-2xl font-bold">Movie Database</h2>
             <p className="text-sm text-zinc-500">Drag and drop movies between zones to manage their status.</p>
           </div>
