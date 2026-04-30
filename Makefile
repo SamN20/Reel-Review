@@ -3,7 +3,7 @@ ifneq ("$(wildcard .env)","")
 	export
 endif
 
-.PHONY: dev prod down build build-prod db-shell db-migrate test-frontend test-backend clean setup
+.PHONY: dev prod down build build-prod db-shell db-migrate db-seed db-unseed test-frontend test-backend clean setup
 
 dev:
 	docker compose -f docker-compose.yml up --build
@@ -25,6 +25,20 @@ db-shell:
 
 db-migrate:
 	docker compose exec backend alembic upgrade head
+
+db-seed:
+	if python3 -c "import socket; s=socket.socket(); s.settimeout(1); s.connect(('127.0.0.1', $(POSTGRES_PORT))); s.close()" >/dev/null 2>&1; then \
+		cd backend && POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=$(POSTGRES_PORT) poetry run python -m app.seed seed; \
+	else \
+		docker compose run --rm --no-deps backend python -m app.seed seed; \
+	fi
+
+db-unseed:
+	if python3 -c "import socket; s=socket.socket(); s.settimeout(1); s.connect(('127.0.0.1', $(POSTGRES_PORT))); s.close()" >/dev/null 2>&1; then \
+		cd backend && POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=$(POSTGRES_PORT) poetry run python -m app.seed unseed; \
+	else \
+		docker compose run --rm --no-deps backend python -m app.seed unseed; \
+	fi
 
 test-frontend:
 	docker compose exec frontend npm run test
