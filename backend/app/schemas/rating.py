@@ -23,3 +23,8 @@ class RatingOut(RatingCreate):
     user_id: int
     movie_id: int
     is_late: bool
+    is_flagged: bool = False
+    is_approved: bool = True
+
+    class Config:
+        from_attributes = True

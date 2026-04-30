@@ -59,6 +59,14 @@ For detailed planning and design specifications, see the `docs/` directory. UI m
 - **Backend**: `make test-backend`
 - **Frontend**: `make test-frontend`
 
+### Database Migrations
+
+The backend now applies Alembic migrations automatically when the backend container starts. To run them manually against a running dev stack:
+
+```bash
+make db-migrate
+```
+
 ## Contributing
 
 Please see [AGENTS.md](AGENTS.md) for contribution guidelines and [SECURITY.md](SECURITY.md) for reporting vulnerabilities.

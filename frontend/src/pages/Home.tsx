@@ -6,10 +6,21 @@ import { HeroSection } from '../components/HeroSection';
 import { FilmShelf } from '../components/FilmShelf';
 import { CommunityDiscussions } from '../components/CommunityDiscussions';
 
+interface CurrentDrop {
+    id: number;
+    movie: {
+        title: string;
+        overview: string | null;
+        backdrop_path: string | null;
+    };
+    start_date: string;
+    end_date: string;
+}
+
 export default function Home() {
     const { user, loading: authLoading, login, logout } = useAuth();
     
-    const [currentDrop, setCurrentDrop] = useState(null);
+    const [currentDrop, setCurrentDrop] = useState<CurrentDrop | null>(null);
     const [pastDrops, setPastDrops] = useState([]);
     const [loading, setLoading] = useState(true);
     const [navComingSoon, setNavComingSoon] = useState<string | null>(null);
@@ -22,7 +33,11 @@ export default function Home() {
                 const currentRes = await axios.get(`${API_URL}/api/v1/drops/current`);
                 setCurrentDrop(currentRes.data);
             } catch (err) {
-                console.error("Failed to fetch current drop", err);
+                if (axios.isAxiosError(err) && err.response?.status === 404) {
+                    setCurrentDrop(null);
+                } else {
+                    console.error("Failed to fetch current drop", err);
+                }
             }
 
             try {
@@ -114,7 +129,7 @@ export default function Home() {
             </nav>
 
             <main>
-                <HeroSection currentDrop={currentDrop} />
+                <HeroSection currentDrop={currentDrop} canManageDrops={Boolean(user?.is_admin)} />
 
                 <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-16 -mt-8 relative z-20">
                     <FilmShelf pastDrops={pastDrops} />

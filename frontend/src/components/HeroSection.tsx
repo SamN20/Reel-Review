@@ -15,12 +15,67 @@ interface WeeklyDrop {
   end_date: string;
 }
 
-export function HeroSection({ currentDrop }: { currentDrop: WeeklyDrop | null }) {
+export function HeroSection({
+    currentDrop,
+    canManageDrops = false,
+}: {
+    currentDrop: WeeklyDrop | null;
+    canManageDrops?: boolean;
+}) {
     const navigate = useNavigate();
     const [partyComingSoon, setPartyComingSoon] = useState(false);
 
     if (!currentDrop) {
-        return <div className="w-full h-[85vh] min-h-[600px] bg-zinc-950 animate-pulse" />;
+        return (
+            <section className="relative w-full min-h-[600px] flex items-end justify-center pb-16 md:pb-24">
+                <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(220,38,38,0.18),_transparent_35%),linear-gradient(180deg,_#18181b_0%,_#09090b_100%)]"></div>
+                <div className="absolute inset-0 z-0 opacity-30 bg-[linear-gradient(135deg,transparent_0%,transparent_48%,rgba(255,255,255,0.03)_50%,transparent_52%,transparent_100%)] bg-[length:24px_24px]"></div>
+
+                <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8">
+                    <div className="max-w-3xl rounded-3xl border border-zinc-800 bg-zinc-950/75 backdrop-blur-xl p-8 md:p-10 shadow-2xl">
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-black bg-zinc-800 text-zinc-200 rounded uppercase tracking-widest">
+                            Weekly Drop Pending
+                        </span>
+                        <h1 className="mt-6 text-4xl md:text-6xl font-black tracking-tighter leading-[1.05] text-white">
+                            No movie has been scheduled for the current week yet.
+                        </h1>
+                        <p className="mt-4 text-lg text-zinc-400 max-w-2xl leading-relaxed">
+                            The site is live and your account is working, but the homepage needs an active weekly drop before it can feature a film here.
+                        </p>
+                        <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                            {canManageDrops ? (
+                                <button
+                                    onClick={() => navigate('/admin')}
+                                    className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-zinc-200 text-zinc-950 font-black tracking-wide rounded-lg transition-colors shadow-xl"
+                                >
+                                    Set Up This Week&apos;s Drop
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate('/vote')}
+                                    className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-zinc-200 text-zinc-950 font-black tracking-wide rounded-lg transition-colors shadow-xl"
+                                >
+                                    Check Voting Page
+                                </button>
+                            )}
+                            <button
+                                onClick={() => {
+                                    setPartyComingSoon(true);
+                                    setTimeout(() => setPartyComingSoon(false), 2000);
+                                }}
+                                className={`w-full sm:w-auto px-8 py-4 rounded-lg border font-bold tracking-wide transition-all duration-300 ${
+                                    partyComingSoon
+                                        ? 'bg-zinc-800 border-zinc-500 text-white scale-95'
+                                        : 'bg-zinc-900/60 hover:bg-zinc-800/80 text-white border-zinc-700/50'
+                                }`}
+                            >
+                                {partyComingSoon ? 'Coming Soon...' : 'Browse Community Features'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
     }
 
     const bgImage = currentDrop.movie.backdrop_path 

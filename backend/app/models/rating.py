@@ -30,6 +30,10 @@ class Rating(Base):
     is_anonymous = Column(Boolean, default=False)
     has_spoilers = Column(Boolean, default=False)
     
+    # Moderation
+    is_flagged = Column(Boolean, default=False)
+    is_approved = Column(Boolean, default=True)
+    
     is_late = Column(Boolean, default=False)
     
     user = relationship("User")

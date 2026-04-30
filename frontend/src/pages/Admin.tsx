@@ -5,6 +5,8 @@ import { Navigate } from 'react-router-dom';
 import { DashboardTab } from '../features/admin/tabs/DashboardTab';
 import { MoviesTab } from '../features/admin/tabs/MoviesTab';
 import { DropsTab } from '../features/admin/tabs/DropsTab';
+import { UsersTab } from '../features/admin/tabs/UsersTab';
+import { ModerationTab } from '../features/admin/tabs/ModerationTab';
 
 export default function Admin() {
   const { user, loading } = useAuth();
@@ -71,6 +73,18 @@ export default function Admin() {
           >
             Weekly Drops
           </button>
+          <button 
+            onClick={() => handleTabChange('users')}
+            className={`text-left px-4 py-2 rounded-lg transition-colors ${activeTab === 'users' ? 'bg-red-600 text-white' : 'text-zinc-400 hover:bg-zinc-800'}`}
+          >
+            Users
+          </button>
+          <button 
+            onClick={() => handleTabChange('moderation')}
+            className={`text-left px-4 py-2 rounded-lg transition-colors ${activeTab === 'moderation' ? 'bg-red-600 text-white' : 'text-zinc-400 hover:bg-zinc-800'}`}
+          >
+            Moderation
+          </button>
         </nav>
       </aside>
 
@@ -93,6 +107,8 @@ export default function Admin() {
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'movies' && <MoviesTab />}
         {activeTab === 'drops' && <DropsTab />}
+        {activeTab === 'users' && <UsersTab />}
+        {activeTab === 'moderation' && <ModerationTab />}
       </div>
     </div>
   );

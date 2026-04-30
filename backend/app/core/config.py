@@ -1,7 +1,10 @@
-from typing import Optional
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import PostgresDsn, computed_field
 from pydantic_core import MultiHostUrl
+
+BASE_DIR = Path(__file__).resolve().parents[3]
+ENV_FILES = [BASE_DIR / ".env", BASE_DIR.parent / ".env"]
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Reel-Review API"
@@ -45,7 +48,9 @@ class Settings(BaseSettings):
     TMDB_API_KEY: str
 
     model_config = SettingsConfigDict(
-        env_file="../.env", env_ignore_empty=True, extra="ignore"
+        env_file=tuple(str(path) for path in ENV_FILES),
+        env_ignore_empty=True,
+        extra="ignore",
     )
 
 settings = Settings()

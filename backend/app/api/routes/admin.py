@@ -10,6 +10,7 @@ from app.models.user import User
 from app.models.movie import Movie
 from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
+from app.schemas.user import UserOut, UserUpdate
 from app.core.config import settings
 
 router = APIRouter(dependencies=[Depends(deps.get_current_admin)])
@@ -195,3 +196,75 @@ def delete_drop(drop_id: int, db: Session = Depends(deps.get_db)):
     db.delete(drop)
     db.commit()
     return {"message": "Drop deleted"}
+
+@router.get("/users", response_model=List[UserOut])
+def get_users(db: Session = Depends(deps.get_db)):
+    """Get all registered users for administration."""
+    users = db.query(User).order_by(User.id.desc()).all()
+    return users
+
+@router.patch("/users/{user_id}", response_model=UserOut)
+def update_user_status(user_id: int, user_update: UserUpdate, current_admin: User = Depends(deps.get_current_admin), db: Session = Depends(deps.get_db)):
+    """Update a user's is_active or is_admin status."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.keyn_id == "1" and (user_update.is_admin is False or user_update.is_active is False):
+        raise HTTPException(status_code=400, detail="Cannot modify root admin account.")
+        
+    if user_id == current_admin.id and user_update.is_active is False:
+        raise HTTPException(status_code=400, detail="Cannot deactivate your own admin account.")
+    if user_id == current_admin.id and user_update.is_admin is False:
+        raise HTTPException(status_code=400, detail="Cannot revoke your own admin access.")
+
+    if user_update.is_active is not None:
+        user.is_active = user_update.is_active
+    if user_update.is_admin is not None:
+        user.is_admin = user_update.is_admin
+        
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.get("/moderation/flagged")
+def get_flagged_content(db: Session = Depends(deps.get_db)):
+    """Get all flagged ratings."""
+    flagged = db.query(Rating).filter(Rating.is_flagged == True).order_by(Rating.created_at.desc()).all()
+    result = []
+    for rating in flagged:
+        result.append({
+            "id": rating.id,
+            "user_id": rating.user_id,
+            "username": rating.user.username if rating.user else "Unknown",
+            "movie_title": rating.movie.title if rating.movie else "Unknown",
+            "review_text": rating.review_text,
+            "is_approved": rating.is_approved,
+            "created_at": rating.created_at
+        })
+    return result
+
+@router.post("/moderation/{rating_id}/approve")
+def approve_flagged_content(rating_id: int, db: Session = Depends(deps.get_db)):
+    """Approve a flagged rating."""
+    rating = db.query(Rating).filter(Rating.id == rating_id).first()
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    rating.is_flagged = False
+    rating.is_approved = True
+    db.commit()
+    return {"message": "Content approved"}
+
+@router.delete("/moderation/{rating_id}")
+def delete_flagged_content(rating_id: int, db: Session = Depends(deps.get_db)):
+    """Delete a flagged rating (clear the review text, or delete rating entirely if desired, here we just clear the text to keep the score)."""
+    rating = db.query(Rating).filter(Rating.id == rating_id).first()
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    # For now we'll just censor the text
+    rating.review_text = "[REMOVED BY MODERATOR]"
+    rating.is_flagged = False
+    rating.is_approved = False
+    db.commit()
+    return {"message": "Content removed"}
+

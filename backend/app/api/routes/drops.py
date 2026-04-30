@@ -19,6 +19,7 @@ def get_current_drop(db: Session = Depends(deps.get_db)):
     today = date.today()
     drop = db.query(WeeklyDrop).filter(
         WeeklyDrop.is_active == True,
+        WeeklyDrop.movie_id.isnot(None),
         WeeklyDrop.start_date <= today,
         WeeklyDrop.end_date >= today
     ).first()
@@ -26,14 +27,17 @@ def get_current_drop(db: Session = Depends(deps.get_db)):
     if not drop:
         # For development/testing purposes, if no drop is active today,
         # return the latest active drop or 404
-        drop = db.query(WeeklyDrop).filter(WeeklyDrop.is_active == True).order_by(WeeklyDrop.id.desc()).first()
+        drop = db.query(WeeklyDrop).filter(
+            WeeklyDrop.is_active == True,
+            WeeklyDrop.movie_id.isnot(None)
+        ).order_by(WeeklyDrop.id.desc()).first()
         if not drop:
             raise HTTPException(status_code=404, detail="No active weekly drop found")
 
     return drop
 
 @router.get("/past", response_model=List[PastDropOut])
-def get_past_drops(db: Session = Depends(deps.get_db), current_user: User = Depends(deps.get_current_user)):
+def get_past_drops(db: Session = Depends(deps.get_db), current_user: User | None = Depends(deps.get_optional_user)):
     """
     Get all past drops with their community average score and whether the current user has rated them.
     """
@@ -48,10 +52,12 @@ def get_past_drops(db: Session = Depends(deps.get_db), current_user: User = Depe
         from sqlalchemy import func
         avg_score = db.query(func.avg(Rating.overall_score)).filter(Rating.weekly_drop_id == drop.id).scalar()
         
-        user_rated = db.query(Rating).filter(
-            Rating.weekly_drop_id == drop.id,
-            Rating.user_id == current_user.id
-        ).first() is not None
+        user_rated = False
+        if current_user:
+            user_rated = db.query(Rating).filter(
+                Rating.weekly_drop_id == drop.id,
+                Rating.user_id == current_user.id
+            ).first() is not None
 
         drop_dict = {
             "id": drop.id,

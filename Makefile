@@ -3,7 +3,7 @@ ifneq ("$(wildcard .env)","")
 	export
 endif
 
-.PHONY: dev prod down build build-prod db-shell test-frontend test-backend clean setup
+.PHONY: dev prod down build build-prod db-shell db-migrate test-frontend test-backend clean setup
 
 dev:
 	docker compose -f docker-compose.yml up --build
@@ -22,6 +22,9 @@ build-prod:
 
 db-shell:
 	docker compose exec -e PGPASSWORD=$(POSTGRES_PASSWORD) db psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+db-migrate:
+	docker compose exec backend alembic upgrade head
 
 test-frontend:
 	docker compose exec frontend npm run test
