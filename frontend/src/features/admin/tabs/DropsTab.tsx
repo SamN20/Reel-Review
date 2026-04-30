@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -22,6 +22,7 @@ export function DropsTab() {
   const [selectedMovieId, setSelectedMovieId] = useState<number | ''>('');
   const [selectionMode, setSelectionMode] = useState('admin_pick');
   const [movieSearch, setMovieSearch] = useState('');
+  const [showScheduledMovies, setShowScheduledMovies] = useState(false);
 
   // Pagination/Expansion state
   const [weeksCount, setWeeksCount] = useState(12);
@@ -88,11 +89,16 @@ export function DropsTab() {
   const pastWeeks = getWeeks(pastWeeksCount, -pastWeeksCount);
 
   const isFlexible = FLEXIBLE_MODES.includes(selectionMode);
+  const scheduledMovieIds = useMemo(
+    () => new Set(drops.map((drop) => drop.movie_id).filter(Boolean)),
+    [drops]
+  );
 
   const handleOpenModal = (startStr?: string) => {
     setSelectedMovieId('');
     setSelectionMode('admin_pick');
     setMovieSearch('');
+    setShowScheduledMovies(false);
     if (startStr) {
       setSelectedWeekStart(startStr);
     } else {
@@ -156,9 +162,18 @@ export function DropsTab() {
     }
   };
 
-  const filteredModalMovies = movieSearch
-    ? importedMovies.filter(m => m.title.toLowerCase().includes(movieSearch.toLowerCase()))
-    : importedMovies;
+  const filteredModalMovies = useMemo(() => {
+    const normalizedSearch = movieSearch.toLowerCase();
+
+    return importedMovies.filter((movie) => {
+      const matchesSearch = !movieSearch || movie.title.toLowerCase().includes(normalizedSearch);
+      if (!matchesSearch) return false;
+
+      if (showScheduledMovies) return true;
+
+      return !scheduledMovieIds.has(movie.id);
+    });
+  }, [importedMovies, movieSearch, scheduledMovieIds, showScheduledMovies]);
 
   const renderWeekRow = (week: any, idx: number, isUpcoming: boolean) => {
     const drop = drops.find(d => d.start_date === week.start);
@@ -370,7 +385,20 @@ export function DropsTab() {
                 {/* Movie selector (only for locked modes) */}
                 {!isFlexible && (
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-widest">Select Movie</label>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                      <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Select Movie</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowScheduledMovies((current) => !current)}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                          showScheduledMovies
+                            ? 'border-red-500/50 bg-red-950/30 text-red-300'
+                            : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:text-white hover:border-zinc-500'
+                        }`}
+                      >
+                        {showScheduledMovies ? 'Hide Scheduled Movies' : 'Show Scheduled Movies'}
+                      </button>
+                    </div>
                     <div className="relative mb-2">
                       <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeWidth="2" d="m21 21-4.35-4.35"/></svg>
                       <input
@@ -381,6 +409,11 @@ export function DropsTab() {
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-10 pr-4 py-2 text-white text-sm focus:outline-none focus:border-red-500 transition-colors"
                       />
                     </div>
+                    <p className="text-[11px] text-zinc-500 mb-3">
+                      {showScheduledMovies
+                        ? 'Showing all imported movies, including titles already scheduled in another drop.'
+                        : 'Showing only movies that are not currently scheduled in a drop, including titles available in the pool.'}
+                    </p>
                     <div className="max-h-40 overflow-y-auto space-y-1 bg-zinc-950 rounded-lg border border-zinc-800 p-2 custom-scrollbar">
                       {filteredModalMovies.map(m => (
                         <button
@@ -398,7 +431,19 @@ export function DropsTab() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">{m.title}</p>
-                            <p className="text-[10px] text-zinc-500">{m.release_date?.substring(0, 4)}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-[10px] text-zinc-500">{m.release_date?.substring(0, 4)}</p>
+                              {m.in_pool && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-widest bg-amber-900/40 text-amber-400 border border-amber-800/60">
+                                  Pool
+                                </span>
+                              )}
+                              {scheduledMovieIds.has(m.id) && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-widest bg-zinc-800 text-zinc-300 border border-zinc-700">
+                                  Scheduled
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {selectedMovieId === m.id && (
                             <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -406,7 +451,9 @@ export function DropsTab() {
                         </button>
                       ))}
                       {filteredModalMovies.length === 0 && (
-                        <p className="text-center text-zinc-600 text-sm py-4">No movies found</p>
+                        <p className="text-center text-zinc-600 text-sm py-4">
+                          {showScheduledMovies ? 'No movies found' : 'No eligible unscheduled or pool movies found'}
+                        </p>
                       )}
                     </div>
                   </div>

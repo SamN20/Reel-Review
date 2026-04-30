@@ -30,7 +30,7 @@ export default function Admin() {
   if (!user || !user.is_admin) return <Navigate to="/" />;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col md:flex-row overflow-hidden">
+    <div className="min-h-screen md:h-screen bg-zinc-950 text-white flex flex-col md:flex-row md:overflow-hidden">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/60 md:hidden"
@@ -41,7 +41,7 @@ export default function Admin() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 bg-zinc-900 flex flex-col border-r border-zinc-800 p-5 md:static md:z-auto md:w-64 md:p-6 transform transition-transform duration-300 ease-out md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed inset-y-0 left-0 z-40 w-72 bg-zinc-900 flex flex-col border-r border-zinc-800 p-5 md:static md:z-auto md:w-64 md:h-screen md:flex-shrink-0 md:overflow-y-auto md:overscroll-contain md:p-6 transform transition-transform duration-300 ease-out md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         <div className="flex items-start justify-between gap-4 mb-8">
           <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
@@ -89,7 +89,7 @@ export default function Admin() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pt-4 md:pt-8 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 min-w-0 md:h-screen p-4 sm:p-6 lg:p-8 pt-4 md:pt-8 md:overflow-y-auto md:overscroll-contain custom-scrollbar">
         <div className="md:hidden flex items-center justify-between gap-4 mb-6">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-1">Admin</p>
