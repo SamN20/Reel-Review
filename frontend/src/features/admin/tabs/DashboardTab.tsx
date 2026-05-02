@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { StatCard } from '../components/StatCard';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { StatCard } from "../components/StatCard";
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 export function DashboardTab() {
   const [stats, setStats] = useState<any>(null);
@@ -10,9 +10,9 @@ export function DashboardTab() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         const res = await axios.get(`${API_URL}/api/v1/admin/stats`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         setStats(res.data);
       } catch (err) {

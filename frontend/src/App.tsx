@@ -1,10 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import Home from './pages/Home';
-import AuthCallback from './pages/AuthCallback';
-import Vote from './pages/Vote';
-import Admin from './pages/Admin';
-import './index.css';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import Home from "./pages/Home";
+import AuthCallback from "./pages/AuthCallback";
+import Vote from "./pages/Vote";
+import Admin from "./pages/Admin";
+import "./index.css";
 
 function App() {
   return (

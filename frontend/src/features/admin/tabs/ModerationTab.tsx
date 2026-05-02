@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { useDraggableScroll } from "../../../hooks/useDraggableScroll";
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 interface FlaggedItem {
   id: number;
@@ -16,19 +17,23 @@ interface FlaggedItem {
 export function ModerationTab() {
   const [items, setItems] = useState<FlaggedItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const scrollProps = useDraggableScroll<HTMLDivElement>();
 
   const fetchFlaggedContent = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_URL}/api/v1/admin/moderation/flagged`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${API_URL}/api/v1/admin/moderation/flagged`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       setItems(res.data);
-      setError('');
+      setError("");
     } catch (err: any) {
       console.error(err);
-      setError('Failed to fetch flagged content');
+      setError("Failed to fetch flagged content");
     } finally {
       setLoading(false);
     }
@@ -40,32 +45,37 @@ export function ModerationTab() {
 
   const handleApprove = async (id: number) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/api/v1/admin/moderation/${id}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setItems(items.filter(item => item.id !== id));
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_URL}/api/v1/admin/moderation/${id}/approve`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      setItems(items.filter((item) => item.id !== id));
     } catch (err: any) {
       console.error(err);
-      alert('Failed to approve content');
+      alert("Failed to approve content");
     }
   };
 
   const handleRemove = async (id: number) => {
     if (!window.confirm("Are you sure you want to censor this review?")) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.delete(`${API_URL}/api/v1/admin/moderation/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setItems(items.filter(item => item.id !== id));
+      setItems(items.filter((item) => item.id !== id));
     } catch (err: any) {
       console.error(err);
-      alert('Failed to remove content');
+      alert("Failed to remove content");
     }
   };
 
-  if (loading) return <div className="text-zinc-400">Loading flagged content...</div>;
+  if (loading)
+    return <div className="text-zinc-400">Loading flagged content...</div>;
 
   return (
     <div className="space-y-6">
@@ -73,10 +83,17 @@ export function ModerationTab() {
         <h2 className="text-xl font-bold tracking-tight">Moderation Queue</h2>
       </div>
 
-      {error && <div className="text-red-500 bg-red-950/20 p-4 rounded-lg border border-red-900/50">{error}</div>}
+      {error && (
+        <div className="text-red-500 bg-red-950/20 p-4 rounded-lg border border-red-900/50">
+          {error}
+        </div>
+      )}
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto custom-scrollbar">
+        <div
+          {...scrollProps}
+          className="overflow-x-auto custom-scrollbar cursor-grab active:cursor-grabbing"
+        >
           <table className="w-full text-left text-sm text-zinc-300">
             <thead className="bg-zinc-950/50 text-xs uppercase tracking-wider text-zinc-500 border-b border-zinc-800">
               <tr>
@@ -90,7 +107,10 @@ export function ModerationTab() {
             <tbody className="divide-y divide-zinc-800">
               {items.length > 0 ? (
                 items.map((item) => (
-                  <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors">
+                  <tr
+                    key={item.id}
+                    className="hover:bg-zinc-800/30 transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-white">
                       {item.username}
                     </td>
@@ -125,7 +145,10 @@ export function ModerationTab() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-zinc-500"
+                  >
                     No flagged content in the queue.
                   </td>
                 </tr>
