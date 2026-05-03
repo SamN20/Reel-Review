@@ -84,7 +84,7 @@ export function KanbanColumn({
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-3 overflow-y-auto max-h-[60vh] space-y-2">
+      <div className="flex-1 p-3 overflow-y-auto max-h-[60vh] space-y-2 custom-scrollbar">
         {movies.length === 0 ? (
           <div
             className="border-2 border-dashed rounded-lg p-8 flex items-center justify-center text-sm text-center transition-all duration-300"
