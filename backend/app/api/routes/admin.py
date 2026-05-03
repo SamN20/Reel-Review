@@ -12,6 +12,8 @@ from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
 from app.schemas.user import UserOut, UserUpdate
 from app.core.config import settings
+from app.services.ratings_calculator import RatingsCalculator
+from app.services.nolofication import nolofication
 
 router = APIRouter(dependencies=[Depends(deps.get_current_admin)])
 
@@ -35,6 +37,92 @@ def get_admin_stats(db: Session = Depends(deps.get_db)):
         "total_movies": total_movies,
         "total_drops": total_drops
     }
+
+@router.get("/dashboard-stats")
+def get_dashboard_stats(db: Session = Depends(deps.get_db)):
+    active_drop = db.query(WeeklyDrop).filter(WeeklyDrop.is_active == True).first()
+    
+    total_active_users = db.query(User).filter(User.is_active == True).count()
+    
+    active_drop_data = None
+    if active_drop:
+        votes_cast = db.query(Rating).filter(Rating.weekly_drop_id == active_drop.id).count()
+        active_drop_data = {
+            "id": active_drop.id,
+            "movie_title": active_drop.movie.title if active_drop.movie else None,
+            "total_active_users": total_active_users,
+            "votes_cast": votes_cast,
+            "start_date": active_drop.start_date,
+            "end_date": active_drop.end_date
+        }
+    
+    engagement_data = RatingsCalculator.get_engagement_history(db, total_active_users)
+        
+    sentiment_payload = RatingsCalculator.get_sentiment_overview(
+        db,
+        active_drop_id=active_drop.id if active_drop else None,
+    )
+        
+    # Subcategory Insights
+    insights = RatingsCalculator.get_subcategory_insights(db)
+    
+    # Divisiveness
+    divisiveness = RatingsCalculator.calculate_divisiveness(db)
+    
+    # Moderation count
+    flagged_count = db.query(Rating).filter(Rating.is_flagged == True).count()
+    
+    # Retention / Streaks
+    top_raters_query = db.query(User.username, func.count(Rating.id).label('rating_count')).join(Rating).group_by(User.id).order_by(func.count(Rating.id).desc()).limit(5).all()
+    top_raters = [{"username": u, "count": r} for u, r in top_raters_query]
+    
+    return {
+        "active_drop": active_drop_data,
+        "engagement": engagement_data,
+        "sentiment": sentiment_payload,
+        "insights": insights,
+        "divisiveness": divisiveness,
+        "moderation_count": flagged_count,
+        "top_raters": top_raters
+    }
+
+@router.post("/reminders/weekend")
+async def send_weekend_reminder(db: Session = Depends(deps.get_db)):
+    active_drop = db.query(WeeklyDrop).filter(WeeklyDrop.is_active == True).first()
+    if not active_drop:
+        raise HTTPException(status_code=400, detail="No active drop to send reminder for.")
+        
+    # Find active users who haven't voted in this drop
+    voted_user_ids = db.query(Rating.user_id).filter(Rating.weekly_drop_id == active_drop.id).all()
+    voted_user_ids = [u[0] for u in voted_user_ids]
+    
+    unvoted_users = db.query(User).filter(User.is_active == True, User.id.notin_(voted_user_ids)).all()
+    
+    if not unvoted_users:
+        return {"message": "All active users have already voted!"}
+        
+    # extract KeyN IDs
+    keyn_ids = [u.keyn_id for u in unvoted_users if u.keyn_id]
+    
+    movie_title = active_drop.movie.title if active_drop.movie else "this week's movie"
+    
+    # use bulk notification
+    result = await nolofication.send_bulk_notification(
+        user_ids=keyn_ids,
+        title="Weekend Reminder",
+        message=f"Don't forget to vote for {movie_title} before the Sunday deadline!",
+        notification_type="warning"
+    )
+    
+    if result:
+        if not result.get("success", True):
+            raise HTTPException(status_code=500, detail=f"Nolofication Error: {result.get('error')}")
+        if result.get("failed", 0) > 0:
+            if result.get("successful", 0) == 0:
+                raise HTTPException(status_code=500, detail=f"Failed to send to all {result.get('failed')} users. Check Nolofication integration.")
+            return {"message": f"Reminders sent to {result.get('successful')} users, but {result.get('failed')} failed."}
+            
+    return {"message": f"Reminders sent to {len(keyn_ids)} users."}
 
 @router.get("/tmdb/search")
 async def search_tmdb(query: str):
@@ -267,4 +355,3 @@ def delete_flagged_content(rating_id: int, db: Session = Depends(deps.get_db)):
     rating.is_approved = False
     db.commit()
     return {"message": "Content removed"}
-

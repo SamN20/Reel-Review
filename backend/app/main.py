@@ -19,6 +19,11 @@ app.add_middleware(
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+@app.on_event("startup")
+async def startup_event():
+    from app.services.nolofication import nolofication
+    await nolofication.setup_default_categories()
+
 @app.get("/")
 def read_root():
     return {"message": f"Welcome to {settings.PROJECT_NAME}!"}

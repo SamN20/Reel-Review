@@ -8,6 +8,7 @@ from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
 from app.models.user import User
 from app.schemas.drop import WeeklyDropOut, PastDropOut
+from app.services.ratings_calculator import RatingsCalculator
 
 router = APIRouter()
 
@@ -49,8 +50,7 @@ def get_past_drops(db: Session = Depends(deps.get_db), current_user: User | None
 
     result = []
     for drop in past_drops:
-        from sqlalchemy import func
-        avg_score = db.query(func.avg(Rating.overall_score)).filter(Rating.weekly_drop_id == drop.id).scalar()
+        avg_score = RatingsCalculator.calculate_drop_average_score(db, drop.id)
         
         user_rated = False
         if current_user:
@@ -72,7 +72,7 @@ def get_past_drops(db: Session = Depends(deps.get_db), current_user: User | None
             "start_date": drop.start_date,
             "end_date": drop.end_date,
             "is_active": drop.is_active,
-            "community_score": round(avg_score, 1) if avg_score else None,
+            "community_score": avg_score if avg_score > 0 else None,
             "user_has_rated": user_rated
         }
         result.append(drop_dict)

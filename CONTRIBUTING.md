@@ -7,6 +7,7 @@ Thanks for your interest in contributing.
 - Be respectful and collaborative.
 - Open an issue for non-trivial changes before implementation.
 - Keep PRs focused and small.
+- Build reusable parts and centralize logic to minimize repeated code and simplify maintenance.
 - Never commit secrets, production data, or local DB files.
 
 Use GitHub templates when opening issues and PRs:

@@ -76,6 +76,7 @@ make format
 3. Preserve existing style unless a task explicitly requests cleanup.
 4. If assumptions are required, state them clearly in the PR notes.
 5. If blocked by missing context, ask maintainers concise questions.
+6. Build reusable parts and centralize logic (e.g., using a single source of truth for calculations) to minimize repeated code and simplify maintenance.
 
 ## Definition Of Done
 
