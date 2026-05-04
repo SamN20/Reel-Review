@@ -37,6 +37,7 @@ def get_current_drop(db: Session = Depends(deps.get_db)):
 
     return drop
 
+
 @router.get("/past", response_model=List[PastDropOut])
 def get_past_drops(db: Session = Depends(deps.get_db), current_user: User | None = Depends(deps.get_optional_user)):
     """
@@ -78,3 +79,13 @@ def get_past_drops(db: Session = Depends(deps.get_db), current_user: User | None
         result.append(drop_dict)
 
     return result
+
+@router.get("/{drop_id}", response_model=WeeklyDropOut)
+def get_drop_by_id(drop_id: int, db: Session = Depends(deps.get_db)):
+    """
+    Get a specific weekly drop by ID.
+    """
+    drop = db.query(WeeklyDrop).filter(WeeklyDrop.id == drop_id).first()
+    if not drop:
+        raise HTTPException(status_code=404, detail="Weekly drop not found")
+    return drop

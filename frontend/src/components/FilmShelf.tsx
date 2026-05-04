@@ -56,7 +56,7 @@ export function FilmShelf({ pastDrops }: { pastDrops: PastDrop[] }) {
           return (
             <div
               key={drop.id}
-              onClick={() => navigate("/vote")}
+              onClick={() => navigate(`/results/${drop.id}`)}
               className="min-w-[85vw] sm:min-w-[400px] aspect-[21/9] sm:aspect-[16/9] relative rounded-xl overflow-hidden group snap-start cursor-pointer border border-zinc-800/50"
             >
               <div className="absolute inset-0 bg-zinc-900">
@@ -84,12 +84,29 @@ export function FilmShelf({ pastDrops }: { pastDrops: PastDrop[] }) {
                 </div>
               )}
 
-              {/* Hover Overlay Button */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="bg-red-600 text-white rounded-full p-4 transform scale-75 group-hover:scale-100 transition-transform duration-300 shadow-xl shadow-red-900/50 font-bold flex items-center gap-2">
-                  <Play size={20} fill="currentColor" />{" "}
-                  {drop.user_has_rated ? "Change Vote" : "Rate Now"}
-                </div>
+              {/* Hover Overlay Button(s) */}
+              <div className="absolute inset-0 flex items-center justify-center gap-4 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/results/${drop.id}`);
+                  }}
+                  className="bg-white text-zinc-950 px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl text-sm"
+                >
+                  <Ticket size={18} /> View Results
+                </button>
+                
+                {!drop.user_has_rated && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/vote/${drop.id}`);
+                    }}
+                    className="bg-red-600 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-red-900/40 text-sm"
+                  >
+                    <Play size={18} fill="currentColor" /> Rate Now
+                  </button>
+                )}
               </div>
 
               <div className="absolute bottom-0 left-0 p-5 w-full">

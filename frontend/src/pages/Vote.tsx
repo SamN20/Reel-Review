@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ScoreBar } from "../components/ScoreBar";
@@ -34,6 +35,7 @@ interface Drop {
 export default function Vote() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
 
   const [drop, setDrop] = useState<Drop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,7 @@ export default function Vote() {
   const [hasWatched, setHasWatched] = useState(true);
   const [overallScore, setOverallScore] = useState(0);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isSpoiler, setIsSpoiler] = useState(false);
   const [showSubCategories, setShowSubCategories] = useState(false);
   const [subScores, setSubScores] = useState<Record<string, number>>({
     story: 0,
@@ -53,6 +56,7 @@ export default function Vote() {
   });
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -63,15 +67,16 @@ export default function Vote() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchCurrentDrop = async () => {
+    const fetchDrop = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/v1/drops/current`);
+        const endpoint = id ? `/api/v1/drops/${id}` : "/api/v1/drops/current";
+        const response = await axios.get(`${API_URL}${endpoint}`);
         setDrop(response.data);
       } catch (err: any) {
         if (err.response?.status === 404) {
-          setError("No active weekly drop found right now. Check back Monday!");
+          setError(id ? "Weekly drop not found." : "No active weekly drop found right now. Check back Monday!");
         } else {
-          setError("Failed to load current drop.");
+          setError("Failed to load drop.");
         }
       } finally {
         setLoading(false);
@@ -79,9 +84,9 @@ export default function Vote() {
     };
 
     if (user) {
-      fetchCurrentDrop();
+      fetchDrop();
     }
-  }, [API_URL, user]);
+  }, [API_URL, user, id]);
 
   useEffect(() => {
     const fetchMyRating = async () => {
@@ -95,18 +100,30 @@ export default function Vote() {
           },
         );
         const r = response.data;
-        setHasWatched(r.watched_status);
-        setOverallScore(r.overall_score);
-        setIsAnonymous(r.is_anonymous);
-        setReviewText(r.review_text || "");
-        setSubScores({
-          story: r.story_score || 0,
-          performances: r.performances_score || 0,
-          visuals: r.visuals_score || 0,
-          sound: r.sound_score || 0,
-          rewatchability: r.rewatchability_score || 0,
-          enjoyment: r.enjoyment_score || 0,
-        });
+        if (r) {
+          // Check if drop is active (end_date >= today)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const endDate = new Date(drop.end_date);
+          endDate.setHours(0, 0, 0, 0);
+          
+          if (endDate < today) {
+            setIsLocked(true);
+          }
+          setHasWatched(r.watched_status);
+          setOverallScore(r.overall_score);
+          setIsAnonymous(r.is_anonymous);
+          setIsSpoiler(r.has_spoilers || false);
+          setReviewText(r.review_text || "");
+          setSubScores({
+            story: r.story_score || 0,
+            performances: r.performances_score || 0,
+            visuals: r.visuals_score || 0,
+            sound: r.sound_score || 0,
+            rewatchability: r.rewatchability_score || 0,
+            enjoyment: r.enjoyment_score || 0,
+          });
+        }
       } catch (err: any) {
         if (err.response?.status !== 404) {
           console.error("Failed to fetch existing rating", err);
@@ -133,7 +150,7 @@ export default function Vote() {
         enjoyment_score: subScores.enjoyment || null,
         review_text: reviewText || null,
         is_anonymous: isAnonymous,
-        has_spoilers: false, // simplified for now
+        has_spoilers: isSpoiler,
       };
 
       await axios.post(`${API_URL}/api/v1/ratings/`, payload, {
@@ -265,8 +282,9 @@ export default function Vote() {
               </p>
             </div>
             <button
-              onClick={() => setHasWatched(!hasWatched)}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${hasWatched ? "bg-red-600" : "bg-zinc-700"}`}
+              onClick={() => !isLocked && setHasWatched(!hasWatched)}
+              disabled={isLocked}
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${hasWatched ? "bg-red-600" : "bg-zinc-700"} ${isLocked ? "cursor-not-allowed opacity-80" : ""}`}
             >
               <span
                 className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${hasWatched ? "translate-x-7" : "translate-x-1"}`}
@@ -290,6 +308,7 @@ export default function Vote() {
               score={overallScore}
               setScore={setOverallScore}
               size="large"
+              disabled={isLocked}
             />
             <div className="flex justify-between text-xs font-bold text-zinc-600 uppercase tracking-widest px-1">
               <span>0</span>
@@ -346,9 +365,10 @@ export default function Vote() {
                     <ScoreBar
                       score={subScores[cat.id]}
                       setScore={(val) =>
-                        setSubScores({ ...subScores, [cat.id]: val })
+                        !isLocked && setSubScores({ ...subScores, [cat.id]: val })
                       }
                       size="small"
+                      disabled={isLocked}
                     />
                   </div>
                 ))}
@@ -373,8 +393,9 @@ export default function Vote() {
             <div className="relative">
               <textarea
                 value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                className="w-full h-32 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-600/50 focus:border-red-600 resize-none transition-all"
+                onChange={(e) => !isLocked && setReviewText(e.target.value)}
+                disabled={isLocked}
+                className={`w-full h-32 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-600/50 focus:border-red-600 resize-none transition-all ${isLocked ? "cursor-not-allowed opacity-80" : ""}`}
                 placeholder="What did you think of the movie? Keep it spoiler-free, or head to the discussion boards for deep dives."
               />
               <div className="absolute bottom-4 right-4 flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
@@ -409,26 +430,57 @@ export default function Vote() {
                 Post anonymously
               </span>
             </label>
+
+            <label className="flex items-center gap-3 cursor-pointer group w-fit mt-2">
+              <div
+                className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSpoiler ? "bg-red-600 border-red-600" : "bg-zinc-900 border-zinc-700 group-hover:border-zinc-500"}`}
+              >
+                {isSpoiler && (
+                  <CheckCircle2
+                    size={14}
+                    className="text-white"
+                    strokeWidth={3}
+                  />
+                )}
+              </div>
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={isSpoiler}
+                onChange={() => setIsSpoiler(!isSpoiler)}
+              />
+              <span className="text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors flex items-center gap-2">
+                <AlertTriangle size={16} className={isSpoiler ? "text-red-500" : ""} />
+                Mark as Spoiler
+              </span>
+            </label>
           </div>
 
           {/* Submit Action */}
           <div className="sticky bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950 to-transparent pt-8 pb-6 mt-auto">
-            <button
-              onClick={handleSubmit}
-              disabled={overallScore === 0 || submitting}
-              className={`w-full py-5 rounded-xl font-black text-lg uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-2xl
-                                ${
-                                  overallScore > 0 && !submitting
-                                    ? "bg-red-600 text-white hover:bg-red-500 hover:-translate-y-1 shadow-red-900/30"
-                                    : "bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800"
-                                }`}
-            >
-              {submitting
-                ? "Submitting..."
-                : overallScore > 0
-                  ? "Submit Weekly Vote"
-                  : "Select a Score to Vote"}
-            </button>
+            {isLocked ? (
+              <div className="w-full py-5 rounded-xl font-black text-lg uppercase tracking-widest bg-zinc-900 text-zinc-400 border border-zinc-800 flex items-center justify-center gap-2 shadow-2xl">
+                <CheckCircle2 size={24} className="text-green-500" />
+                Rating Locked
+              </div>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={overallScore === 0 || submitting}
+                className={`w-full py-5 rounded-xl font-black text-lg uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-2xl
+                                  ${
+                                    overallScore > 0 && !submitting
+                                      ? "bg-red-600 text-white hover:bg-red-500 hover:-translate-y-1 shadow-red-900/30"
+                                      : "bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800"
+                                  }`}
+              >
+                {submitting
+                  ? "Submitting..."
+                  : overallScore > 0
+                    ? "Submit Weekly Vote"
+                    : "Select a Score to Vote"}
+              </button>
+            )}
           </div>
         </div>
       </div>

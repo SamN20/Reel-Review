@@ -12,6 +12,9 @@ class MovieOut(MovieBase):
     id: int
     release_date: Optional[date] = None
 
+    class Config:
+        from_attributes = True
+
 class WeeklyDropBase(BaseModel):
     start_date: date
     end_date: date
@@ -21,6 +24,12 @@ class WeeklyDropOut(WeeklyDropBase):
     id: int
     movie: MovieOut
 
+    class Config:
+        from_attributes = True
+
 class PastDropOut(WeeklyDropOut):
     community_score: Optional[float] = None
     user_has_rated: bool = False
+
+    class Config:
+        from_attributes = True
