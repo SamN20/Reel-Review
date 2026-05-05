@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Check, ChevronDown, Film, Search, Share2, Trophy, User } from "lucide-react";
+import { Check, ChevronDown, Share2, Trophy } from "lucide-react";
 import axios from "axios";
 
+import { SiteHeader } from "../../../components/SiteHeader";
 import { useAuth } from "../../../context/AuthContext";
 import {
   fetchResultsSummary,
@@ -94,29 +95,7 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-red-600 selection:text-white pb-20 overflow-x-hidden">
-      <nav className="fixed top-0 w-full z-50 px-4 md:px-8 py-4 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-900 transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-10">
-            <div
-              className="flex items-center gap-2 text-red-600 cursor-pointer"
-              onClick={() => navigate("/")}
-            >
-              <Film size={28} strokeWidth={2.5} />
-              <span className="text-xl font-black tracking-tighter text-white uppercase hidden sm:block">
-                Reel Review
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-5 text-zinc-300">
-            <button className="hover:text-white transition-colors">
-              <Search size={20} strokeWidth={2.5} />
-            </button>
-            <button className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center hover:border-zinc-500 transition-colors">
-              <User size={16} />
-            </button>
-          </div>
-        </div>
-      </nav>
+      <SiteHeader />
 
       <main>
         <ResultsHero

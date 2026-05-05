@@ -35,7 +35,7 @@ export function FilmShelf({ pastDrops }: { pastDrops: PastDrop[] }) {
           </p>
         </div>
         <button
-          onClick={() => alert("Archive coming soon!")}
+          onClick={() => navigate("/film-shelf")}
           className="text-sm font-semibold text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
         >
           View Archive
