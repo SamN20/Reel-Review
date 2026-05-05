@@ -52,6 +52,7 @@ export function MovieStagingScreen({
         title: data.title,
         release_date: data.release_date,
         overview: data.overview,
+        director_name: data.director_name,
         poster_path: selectedPoster,
         backdrop_path: selectedBackdrop,
         genres: data.genres,

@@ -1,33 +1,125 @@
-import { useState } from 'react';
-import { MessageSquare, ShieldAlert, TrendingUp, ChevronDown, Trophy, Flame } from 'lucide-react';
-import { ReviewCard } from './ReviewCard';
+import { useCallback, useEffect, useState } from "react";
+import {
+  ChevronDown,
+  Flame,
+  MessageSquare,
+  ShieldAlert,
+  TrendingUp,
+  Trophy,
+} from "lucide-react";
 
-interface Review {
-  id: number;
-  user_name: string;
-  overall_score: number;
-  review_text: string;
-  is_spoiler: boolean;
-}
+import {
+  createReply,
+  fetchResultsReviews,
+  reportReply,
+  reportReview,
+  toggleReplyLike,
+  toggleReviewLike,
+  type Review,
+  type ReviewSort,
+  type ReviewTab,
+} from "../api";
+import { ReviewCard } from "./ReviewCard";
 
 interface CommunityTakesProps {
-  reviews: Review[];
+  dropId: number;
+  initialReviews: Review[];
   officialScore: number;
   userScore: number | null;
 }
 
-export function CommunityTakes({ reviews, officialScore, userScore }: CommunityTakesProps) {
-  const [activeTab, setActiveTab] = useState<'spoiler-free' | 'spoilers'>('spoiler-free');
+export function CommunityTakes({
+  dropId,
+  initialReviews,
+  officialScore,
+  userScore,
+}: CommunityTakesProps) {
+  const [activeTab, setActiveTab] = useState<ReviewTab>("spoiler-free");
+  const [activeSort, setActiveSort] = useState<ReviewSort>("top");
   const [showSpoilers, setShowSpoilers] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const spoilerFreeReviews = reviews.filter(r => !r.is_spoiler);
-  const spoilerReviews = reviews.filter(r => r.is_spoiler);
+  const refreshReviews = useCallback(async (tab = activeTab, sort = activeSort) => {
+    setLoading(true);
+    try {
+      const response = await fetchResultsReviews(String(dropId), tab, sort);
+      setReviews(response.items);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load community takes.");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeSort, activeTab, dropId]);
 
-  const activeReviews = activeTab === 'spoiler-free' ? spoilerFreeReviews : spoilerReviews;
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void refreshReviews();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [refreshReviews]);
 
-  // Simple mock for perfect match / polar opposite
-  const perfectMatch = activeReviews.length > 0 ? activeReviews[0] : null;
-  const polarOpposite = activeReviews.length > 1 ? activeReviews[activeReviews.length - 1] : null;
+  const activeReviews = reviews;
+  const targetScore = userScore ?? officialScore;
+  const perfectMatch =
+    activeReviews.length > 0
+      ? [...activeReviews].sort(
+          (left, right) =>
+            Math.abs(left.overall_score - targetScore) -
+            Math.abs(right.overall_score - targetScore),
+        )[0]
+      : null;
+  const polarOpposite =
+    activeReviews.length > 1
+      ? [...activeReviews].sort(
+          (left, right) =>
+            Math.abs(right.overall_score - targetScore) -
+            Math.abs(left.overall_score - targetScore),
+        )[0]
+      : null;
+
+  const updateReviewLikeState = (reviewId: number, likeCount: number, liked: boolean) => {
+    setReviews((currentReviews) =>
+      currentReviews.map((review) =>
+        review.id === reviewId
+          ? { ...review, like_count: likeCount, liked_by_me: liked }
+          : review,
+      ),
+    );
+  };
+
+  const updateReplyLikeState = (
+    reviewList: Review[],
+    replyId: number,
+    likeCount: number,
+    liked: boolean,
+  ): Review[] =>
+    reviewList.map((review) => ({
+      ...review,
+      replies: review.replies.map((reply) =>
+        updateReplyNode(reply, replyId, likeCount, liked),
+      ),
+    }));
+
+  const updateReplyNode = (
+    reply: Review["replies"][number],
+    replyId: number,
+    likeCount: number,
+    liked: boolean,
+  ): Review["replies"][number] => {
+    if (reply.id === replyId) {
+      return { ...reply, like_count: likeCount, liked_by_me: liked };
+    }
+    return {
+      ...reply,
+      replies: reply.replies.map((childReply) =>
+        updateReplyNode(childReply, replyId, likeCount, liked),
+      ),
+    };
+  };
 
   return (
     <div className="w-full">
@@ -71,7 +163,7 @@ export function CommunityTakes({ reviews, officialScore, userScore }: CommunityT
                   <div className="w-10 h-10 rounded-full border border-green-900/50 bg-zinc-800 flex items-center justify-center text-xs text-zinc-500">
                     {perfectMatch.user_name[0].toUpperCase()}
                   </div>
-                  <div>
+                    <div>
                     <div className="font-bold text-white text-sm">{perfectMatch.user_name}</div>
                     <div className="text-[10px] font-bold text-green-500 uppercase tracking-widest">
                       Rated {perfectMatch.overall_score} • {userScore ? 'Same As You' : 'Top Rated'}
@@ -95,10 +187,10 @@ export function CommunityTakes({ reviews, officialScore, userScore }: CommunityT
                   <div className="w-10 h-10 rounded-full border border-red-900/50 bg-zinc-800 flex items-center justify-center text-xs text-zinc-500">
                     {polarOpposite.user_name[0].toUpperCase()}
                   </div>
-                  <div>
+                    <div>
                     <div className="font-bold text-white text-sm">{polarOpposite.user_name}</div>
                     <div className="text-[10px] font-bold text-red-500 uppercase tracking-widest">
-                      Rated {polarOpposite.overall_score} • {userScore ? `${userScore - polarOpposite.overall_score} Diff` : `${Math.round(officialScore - polarOpposite.overall_score)} vs Avg`}
+                      Rated {polarOpposite.overall_score} • {userScore ? `${Math.abs(userScore - polarOpposite.overall_score)} Diff` : `${Math.round(Math.abs(officialScore - polarOpposite.overall_score))} vs Avg`}
                     </div>
                   </div>
                 </div>
@@ -108,26 +200,82 @@ export function CommunityTakes({ reviews, officialScore, userScore }: CommunityT
 
           {/* Filter / Sort Bar */}
           <div className="flex items-center gap-5 mb-6 text-sm border-b border-zinc-900 pb-4">
-            <button className="flex items-center gap-1.5 text-white font-semibold"><TrendingUp size={16} className="text-red-500" /> Top Rated Comments</button>
-            <button className="text-zinc-500 hover:text-zinc-300 font-medium">Most Recent</button>
+            <button
+              onClick={() => setActiveSort("top")}
+              className={`flex items-center gap-1.5 font-semibold ${activeSort === "top" ? "text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+            >
+              <TrendingUp size={16} className="text-red-500" /> Top Rated Comments
+            </button>
+            <button
+              onClick={() => setActiveSort("recent")}
+              className={activeSort === "recent" ? "text-white font-semibold" : "text-zinc-500 hover:text-zinc-300 font-medium"}
+            >
+              Most Recent
+            </button>
+            <button
+              onClick={() => setActiveSort("controversial")}
+              className={activeSort === "controversial" ? "text-white font-semibold" : "text-zinc-500 hover:text-zinc-300 font-medium"}
+            >
+              Controversial
+            </button>
           </div>
 
           {/* Reviews List */}
           <div className="space-y-4">
-            {activeReviews.length > 0 ? (
+            {loading ? (
+              <div className="p-8 text-center text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800">
+                Loading community takes...
+              </div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-400 bg-red-950/10 rounded-2xl border border-dashed border-red-900/40">
+                {error}
+              </div>
+            ) : activeReviews.length > 0 ? (
               activeReviews.map((review, i) => (
-                <ReviewCard key={review.id} review={review} officialScore={officialScore} isHighestMatch={i === 1} />
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  officialScore={officialScore}
+                  isHighestMatch={i === 0}
+                  onToggleLike={async (reviewId) => {
+                    const response = await toggleReviewLike(reviewId);
+                    updateReviewLikeState(reviewId, response.like_count, response.liked);
+                  }}
+                  onToggleReplyLike={async (replyId) => {
+                    const response = await toggleReplyLike(replyId);
+                    setReviews((currentReviews) =>
+                      updateReplyLikeState(
+                        currentReviews,
+                        replyId,
+                        response.like_count,
+                        response.liked,
+                      ),
+                    );
+                  }}
+                  onReportReview={async (reviewId, reason) => {
+                    await reportReview(reviewId, reason);
+                    await refreshReviews();
+                  }}
+                  onReportReply={async (replyId, reason) => {
+                    await reportReply(replyId, reason);
+                    await refreshReviews();
+                  }}
+                  onSubmitReply={async (reviewId, body, parentReplyId) => {
+                    await createReply(reviewId, body, parentReplyId ?? null);
+                    await refreshReviews();
+                  }}
+                />
               ))
             ) : (
               <div className="p-8 text-center text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800">
                 No spoiler-free reviews yet. Be the first!
               </div>
             )}
-            {activeReviews.length > 0 && (
-              <button className="w-full py-4 text-sm font-bold text-zinc-400 hover:text-white flex items-center justify-center gap-2 bg-zinc-900/20 rounded-xl border border-dashed border-zinc-800 hover:border-zinc-600 transition-colors">
-                Load More Takes <ChevronDown size={16} />
-              </button>
-            )}
+            {activeReviews.length > 0 ? (
+              <div className="w-full py-4 text-sm font-bold text-zinc-500 flex items-center justify-center gap-2 bg-zinc-900/20 rounded-xl border border-dashed border-zinc-800">
+                {activeReviews.length} Takes Loaded <ChevronDown size={16} />
+              </div>
+            ) : null}
           </div>
         </>
       ) : (
@@ -141,7 +289,10 @@ export function CommunityTakes({ reviews, officialScore, userScore }: CommunityT
                 Reviews in this section discuss major plot points, twists, and endings. Do not proceed if you haven't seen the film.
               </p>
               <button 
-                onClick={() => setShowSpoilers(true)}
+                onClick={() => {
+                  setShowSpoilers(true);
+                  setActiveTab("spoilers");
+                }}
                 className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-colors"
               >
                 Acknowledge & Reveal Spoilers
@@ -149,9 +300,44 @@ export function CommunityTakes({ reviews, officialScore, userScore }: CommunityT
             </div>
           ) : (
             <div className="space-y-4 animate-in fade-in duration-500">
-              {activeReviews.length > 0 ? (
+              {loading ? (
+                <div className="p-8 text-center text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800">
+                  Loading spoiler takes...
+                </div>
+              ) : activeReviews.length > 0 ? (
                 activeReviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} officialScore={officialScore} />
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    officialScore={officialScore}
+                    onToggleLike={async (reviewId) => {
+                      const response = await toggleReviewLike(reviewId);
+                      updateReviewLikeState(reviewId, response.like_count, response.liked);
+                    }}
+                    onToggleReplyLike={async (replyId) => {
+                      const response = await toggleReplyLike(replyId);
+                      setReviews((currentReviews) =>
+                        updateReplyLikeState(
+                          currentReviews,
+                          replyId,
+                          response.like_count,
+                          response.liked,
+                        ),
+                      );
+                    }}
+                    onReportReview={async (reviewId, reason) => {
+                      await reportReview(reviewId, reason);
+                      await refreshReviews();
+                    }}
+                    onReportReply={async (replyId, reason) => {
+                      await reportReply(replyId, reason);
+                      await refreshReviews();
+                    }}
+                    onSubmitReply={async (reviewId, body, parentReplyId) => {
+                      await createReply(reviewId, body, parentReplyId ?? null);
+                      await refreshReviews();
+                    }}
+                  />
                 ))
               ) : (
                 <div className="p-8 text-center text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800">

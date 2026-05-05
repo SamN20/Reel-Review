@@ -1,5 +1,5 @@
 import pytest
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -82,3 +82,75 @@ def test_get_drop_results(test_client, db: Session):
     assert review["overall_score"] == 85
     assert review["review_text"] == "Great movie!"
     assert review["is_spoiler"] is False
+
+
+def test_get_drop_results_refreshes_stale_watch_providers(test_client, db: Session, monkeypatch):
+    stale_timestamp = datetime.now(timezone.utc) - timedelta(days=31)
+    movie = Movie(
+        tmdb_id=27205,
+        title="Stale Watch Providers",
+        watch_providers={
+            "CA": {
+                "link": "https://old.example/watch",
+                "flatrate": [
+                    {
+                        "provider_id": 1,
+                        "provider_name": "Old Streamer",
+                        "logo_path": "/old.png",
+                    }
+                ],
+            }
+        },
+        watch_providers_updated_at=stale_timestamp,
+    )
+    db.add(movie)
+    db.commit()
+    db.refresh(movie)
+
+    drop = WeeklyDrop(movie_id=movie.id, start_date=date.today(), end_date=date.today() + timedelta(days=7))
+    db.add(drop)
+    db.commit()
+
+    user = db.query(User).filter_by(username="tester").first()
+    db.add(
+        Rating(
+            user_id=user.id,
+            movie_id=movie.id,
+            weekly_drop_id=drop.id,
+            overall_score=70,
+            is_approved=True,
+        )
+    )
+    db.commit()
+
+    def fake_fetch_tmdb_watch_providers(tmdb_id: int):
+        assert tmdb_id == 27205
+        return {
+            "CA": {
+                "link": "https://new.example/watch",
+                "flatrate": [
+                    {
+                        "provider_id": 99,
+                        "provider_name": "Fresh Streamer",
+                        "logo_path": "/fresh.png",
+                    }
+                ],
+            }
+        }
+
+    monkeypatch.setattr(
+        "app.services.movie_metadata.fetch_tmdb_watch_providers",
+        fake_fetch_tmdb_watch_providers,
+    )
+
+    response = test_client.get(f"/api/v1/results/{drop.id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["movie"]["watch_providers"][0]["provider_name"] == "Fresh Streamer"
+    assert data["movie"]["watch_providers"][0]["link_url"] == "https://new.example/watch"
+
+    db.refresh(movie)
+    assert movie.watch_providers["CA"]["flatrate"][0]["provider_name"] == "Fresh Streamer"
+    assert movie.watch_providers_updated_at is not None
+    assert movie.watch_providers_updated_at != stale_timestamp

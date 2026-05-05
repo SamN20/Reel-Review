@@ -1,12 +1,27 @@
 from datetime import date
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
+
+class GenreOut(BaseModel):
+    id: Optional[int] = None
+    name: str
+
+class WatchProviderOut(BaseModel):
+    provider_id: int
+    provider_name: str
+    logo_path: Optional[str] = None
+    category: str
+    region: str
+    link_url: Optional[str] = None
 
 class MovieBase(BaseModel):
     title: str
     overview: Optional[str] = None
     poster_path: Optional[str] = None
     backdrop_path: Optional[str] = None
+    director_name: Optional[str] = None
+    genres: List[GenreOut] = []
+    watch_providers: List[WatchProviderOut] = []
 
 class MovieOut(MovieBase):
     id: int

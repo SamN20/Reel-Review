@@ -12,6 +12,7 @@ class Movie(Base):
     title = Column(String, index=True, nullable=False)
     release_date = Column(Date, nullable=True)
     overview = Column(Text, nullable=True)
+    director_name = Column(String, nullable=True)
     poster_path = Column(String, nullable=True)
     backdrop_path = Column(String, nullable=True)
     
@@ -19,6 +20,7 @@ class Movie(Base):
     cast = Column(JSON().with_variant(JSONB, 'postgresql'), nullable=True)
     keywords = Column(JSON().with_variant(JSONB, 'postgresql'), nullable=True)
     watch_providers = Column(JSON().with_variant(JSONB, 'postgresql'), nullable=True)
+    watch_providers_updated_at = Column(DateTime(timezone=True), nullable=True)
     
     in_pool = Column(Boolean, default=False)
     

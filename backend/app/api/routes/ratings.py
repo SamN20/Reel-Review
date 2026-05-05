@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
 from app.schemas.rating import RatingCreate, RatingOut
+from app.services.review_moderation import apply_auto_moderation
 
 router = APIRouter()
 
@@ -37,47 +38,25 @@ def create_rating(
     if existing:
         if is_late:
             raise HTTPException(status_code=400, detail="The voting week has ended. You can no longer change your rating.")
-            
-        # Check auto-flag
-        bad_words = ["fuck", "shit", "bitch", "asshole", "cunt", "nigger", "faggot", "slut"]
-        is_flagged = False
-        if rating_in.review_text:
-            text_lower = rating_in.review_text.lower()
-            if any(word in text_lower for word in bad_words):
-                is_flagged = True
 
         # Update existing
         for key, value in rating_in.dict(exclude={'weekly_drop_id'}).items():
             setattr(existing, key, value)
-        
-        # Override auto-flag properties
-        existing.is_flagged = is_flagged
-        if is_flagged:
-            existing.is_approved = False
+        apply_auto_moderation(existing)
         
         db.commit()
         db.refresh(existing)
         return existing
 
     # 4. Create rating
-    bad_words = ["fuck", "shit", "bitch", "asshole", "cunt", "nigger", "faggot", "slut"]
-    is_flagged = False
-    is_approved = True
-    if rating_in.review_text:
-        text_lower = rating_in.review_text.lower()
-        if any(word in text_lower for word in bad_words):
-            is_flagged = True
-            is_approved = False
-
     rating = Rating(
         user_id=current_user.id,
         movie_id=drop.movie_id,
         weekly_drop_id=drop.id,
         is_late=is_late,
-        is_flagged=is_flagged,
-        is_approved=is_approved,
         **rating_in.dict(exclude={'weekly_drop_id'})
     )
+    apply_auto_moderation(rating)
     db.add(rating)
     db.commit()
     db.refresh(rating)

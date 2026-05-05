@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Dict, Any
 import math
+from statistics import pstdev
 from datetime import date
 
 from app.models.rating import Rating
@@ -48,19 +49,30 @@ class RatingsCalculator:
 
     @staticmethod
     def calculate_divisiveness(db: Session) -> Dict[str, Any]:
-        """Find the most divisive movie based on standard deviation of overall_score."""
-        result = db.query(
-            Rating.movie_id,
-            Movie.title,
-            func.stddev(Rating.overall_score).label('variance')
-        ).join(Movie).filter(Rating.is_approved == True).group_by(Rating.movie_id, Movie.title).having(func.count(Rating.id) > 1).order_by(func.stddev(Rating.overall_score).desc()).first()
-        
-        if result and result.variance:
-            return {
-                "movie_id": result.movie_id,
-                "title": result.title,
-                "variance": round(float(result.variance), 2)
-            }
+        """Find the most divisive movie based on score spread."""
+        movie_rows = (
+            db.query(Movie)
+            .join(Rating, Rating.movie_id == Movie.id)
+            .filter(Rating.is_approved == True)
+            .all()
+        )
+
+        best_result = {"movie_id": None, "title": "N/A", "variance": 0.0}
+        for movie in movie_rows:
+            scores = [
+                rating.overall_score
+                for rating in db.query(Rating)
+                .filter(Rating.movie_id == movie.id, Rating.is_approved == True)
+                .all()
+            ]
+            if len(scores) < 2:
+                continue
+            variance = round(float(pstdev(scores)), 2)
+            if variance > best_result["variance"]:
+                best_result = {"movie_id": movie.id, "title": movie.title, "variance": variance}
+
+        if best_result["movie_id"] is not None:
+            return best_result
         return {"movie_id": None, "title": "N/A", "variance": 0.0}
 
     @staticmethod

@@ -8,7 +8,6 @@ import {
   EyeOff,
   Star,
   MessageSquare,
-  MonitorPlay,
   ShieldCheck,
   ChevronDown,
   ChevronUp,
@@ -17,17 +16,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ScoreBar } from "../components/ScoreBar";
-
-interface Movie {
-  id: number;
-  title: string;
-  overview: string | null;
-  release_date: string | null;
-}
+import { MovieMetaDetails } from "../components/MovieMetaDetails";
+import type { MovieSummary } from "../features/results/api";
 
 interface Drop {
   id: number;
-  movie: Movie;
+  movie: MovieSummary;
   start_date: string;
   end_date: string;
 }
@@ -235,20 +229,10 @@ export default function Vote() {
             {drop.movie.overview || "No overview available."}
           </p>
 
-          {/* Where to Watch */}
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-              Available to Stream
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center gap-2">
-                <MonitorPlay size={14} className="text-blue-500" /> Crave
-              </button>
-              <button className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center gap-2">
-                <MonitorPlay size={14} className="text-blue-500" /> Club Illico
-              </button>
-            </div>
-          </div>
+          <MovieMetaDetails
+            directorName={drop.movie.director_name}
+            watchProviders={drop.movie.watch_providers}
+          />
         </div>
       </div>
 

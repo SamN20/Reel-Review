@@ -1,7 +1,7 @@
 import argparse
 import logging
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 
@@ -11,6 +11,7 @@ from app.models.movie import Movie
 from app.models.rating import Rating
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
+from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ FALLBACK_MOVIES = [
         "title": "Inception",
         "release_date": date(2010, 7, 16),
         "overview": "A thief who steals corporate secrets through dream-sharing technology is given the inverse task of planting an idea.",
+        "director_name": "Christopher Nolan",
         "poster_path": "/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
         "backdrop_path": "/s3TBrRGB1inv7gFpzPhf0P0tYdr.jpg",
         "genres": [{"id": 28, "name": "Action"}, {"id": 878, "name": "Science Fiction"}],
@@ -44,6 +46,7 @@ FALLBACK_MOVIES = [
         "title": "Dune: Part Two",
         "release_date": date(2024, 3, 1),
         "overview": "Paul Atreides unites with Chani and the Fremen while seeking revenge against those who destroyed his family.",
+        "director_name": "Denis Villeneuve",
         "poster_path": "/1pdfLvkbY9ohJlCjQH2TGpiH057.jpg",
         "backdrop_path": "/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg",
         "genres": [{"id": 878, "name": "Science Fiction"}],
@@ -56,6 +59,7 @@ FALLBACK_MOVIES = [
         "title": "Blade Runner 2049",
         "release_date": date(2017, 10, 4),
         "overview": "A new blade runner unearths a long-buried secret that could plunge what remains of society into chaos.",
+        "director_name": "Denis Villeneuve",
         "poster_path": "/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg",
         "backdrop_path": "/ilRyazdQYKEebnv9VtOVKlpmOQ.jpg",
         "genres": [{"id": 878, "name": "Science Fiction"}],
@@ -68,6 +72,7 @@ FALLBACK_MOVIES = [
         "title": "Everything Everywhere All at Once",
         "release_date": date(2022, 3, 24),
         "overview": "An aging Chinese immigrant is swept up in an absurd adventure where she alone can save existence.",
+        "director_name": "Daniel Kwan, Daniel Scheinert",
         "poster_path": "/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg",
         "backdrop_path": "/wp3vpSWq1R6hD4jI6hE18rN0S2O.jpg",
         "genres": [{"id": 12, "name": "Adventure"}],
@@ -80,6 +85,7 @@ FALLBACK_MOVIES = [
         "title": "The Batman",
         "release_date": date(2022, 3, 1),
         "overview": "Batman ventures into Gotham City's underworld when a sadistic killer leaves behind a trail of cryptic clues.",
+        "director_name": "Matt Reeves",
         "poster_path": "/74xTEgt7R36Fpooo50r9T25onhq.jpg",
         "backdrop_path": "/eUORREWq2ThkkxyiCESCu3sVdGg.jpg",
         "genres": [{"id": 80, "name": "Crime"}],
@@ -108,9 +114,7 @@ def parse_release_date(value: str | None) -> date | None:
 def normalize_tmdb_movie(data: dict) -> dict:
     watch_providers = {}
     provider_results = data.get("watch/providers", {}).get("results", {})
-    for country_code in ("CA", "US"):
-        if country_code in provider_results:
-            watch_providers[country_code] = provider_results[country_code]
+    watch_providers = extract_watch_provider_regions(provider_results)
 
     images = data.get("images", {})
     posters = images.get("posters", [])
@@ -129,12 +133,14 @@ def normalize_tmdb_movie(data: dict) -> dict:
         "title": data.get("title"),
         "release_date": parse_release_date(data.get("release_date")),
         "overview": data.get("overview"),
+        "director_name": extract_director_name(data.get("credits")),
         "poster_path": poster_path,
         "backdrop_path": backdrop_path,
         "genres": data.get("genres", []),
         "cast": data.get("credits", {}).get("cast", [])[:10],
         "keywords": data.get("keywords", {}).get("keywords", []),
         "watch_providers": watch_providers,
+        "watch_providers_updated_at": datetime.now(timezone.utc),
     }
 
 
@@ -166,6 +172,9 @@ def get_seed_movies() -> list[dict]:
 
 
 def upsert_movie(db, movie_data: dict) -> Movie:
+    if "watch_providers" in movie_data and movie_data.get("watch_providers_updated_at") is None:
+        movie_data["watch_providers_updated_at"] = datetime.now(timezone.utc)
+
     movie = None
     if movie_data.get("tmdb_id") is not None:
         movie = db.query(Movie).filter(Movie.tmdb_id == movie_data["tmdb_id"]).first()

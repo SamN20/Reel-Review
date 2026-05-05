@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Dict, Any, Optional
+from datetime import date, datetime, timezone
 import httpx
 from pydantic import BaseModel
 
@@ -10,8 +11,11 @@ from app.models.user import User
 from app.models.movie import Movie
 from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
+from app.models.review_reply import ReviewReply
+from app.models.review_report import ReviewReport
 from app.schemas.user import UserOut, UserUpdate
 from app.core.config import settings
+from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions
 from app.services.ratings_calculator import RatingsCalculator
 from app.services.nolofication import nolofication
 
@@ -71,6 +75,7 @@ def get_dashboard_stats(db: Session = Depends(deps.get_db)):
     
     # Moderation count
     flagged_count = db.query(Rating).filter(Rating.is_flagged == True).count()
+    flagged_count += db.query(ReviewReply).filter(ReviewReply.is_flagged == True).count()
     
     # Retention / Streaks
     top_raters_query = db.query(User.username, func.count(Rating.id).label('rating_count')).join(Rating).group_by(User.id).order_by(func.count(Rating.id).desc()).limit(5).all()
@@ -150,19 +155,14 @@ async def get_tmdb_movie_details(tmdb_id: int):
         data = response.json()
         
         # Process and clean up the data for the frontend to review
-        watch_providers = {}
-        if "watch/providers" in data and "results" in data["watch/providers"]:
-            results = data["watch/providers"]["results"]
-            if "CA" in results:
-                watch_providers["CA"] = results["CA"]
-            if "US" in results:
-                watch_providers["US"] = results["US"]
+        watch_providers = extract_watch_provider_regions(data.get("watch/providers", {}).get("results"))
         
         return {
             "tmdb_id": data.get("id"),
             "title": data.get("title"),
             "release_date": data.get("release_date"),
             "overview": data.get("overview"),
+            "director_name": extract_director_name(data.get("credits")),
             "genres": data.get("genres", []),
             "cast": data.get("credits", {}).get("cast", [])[:10] if data.get("credits") else [],
             "keywords": data.get("keywords", {}).get("keywords", []) if data.get("keywords") else [],
@@ -175,6 +175,7 @@ class MovieImportSchema(BaseModel):
     title: str
     release_date: Optional[str] = None
     overview: Optional[str] = None
+    director_name: Optional[str] = None
     poster_path: Optional[str] = None
     backdrop_path: Optional[str] = None
     genres: Optional[List[Dict[str, Any]]] = None
@@ -187,8 +188,14 @@ def import_movie(movie_data: MovieImportSchema, db: Session = Depends(deps.get_d
     existing = db.query(Movie).filter(Movie.tmdb_id == movie_data.tmdb_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Movie already imported")
-        
-    db_movie = Movie(**movie_data.model_dump())
+
+    payload = movie_data.model_dump()
+    if payload.get("release_date"):
+        payload["release_date"] = date.fromisoformat(payload["release_date"])
+    if payload.get("tmdb_id") is not None:
+        payload["watch_providers_updated_at"] = datetime.now(timezone.utc)
+
+    db_movie = Movie(**payload)
     db.add(db_movie)
     db.commit()
     db.refresh(db_movie)
@@ -226,8 +233,6 @@ def delete_movie(movie_id: int, db: Session = Depends(deps.get_db)):
     db.delete(movie)
     db.commit()
     return {"message": "Movie deleted successfully"}
-
-from datetime import date
 
 class DropCreateSchema(BaseModel):
     movie_id: Optional[int] = None
@@ -317,41 +322,125 @@ def update_user_status(user_id: int, user_update: UserUpdate, current_admin: Use
 
 @router.get("/moderation/flagged")
 def get_flagged_content(db: Session = Depends(deps.get_db)):
-    """Get all flagged ratings."""
-    flagged = db.query(Rating).filter(Rating.is_flagged == True).order_by(Rating.created_at.desc()).all()
+    """Get all flagged ratings and replies with report reason counts."""
+    flagged_ratings = db.query(Rating).filter(Rating.is_flagged == True).order_by(Rating.created_at.desc()).all()
+    flagged_replies = db.query(ReviewReply).filter(ReviewReply.is_flagged == True).order_by(ReviewReply.created_at.desc()).all()
     result = []
-    for rating in flagged:
+    for rating in flagged_ratings:
+        reports = db.query(ReviewReport).filter(ReviewReport.rating_id == rating.id).all()
+        reason_counts = {
+            "harmful_or_spam": sum(1 for report in reports if report.reason == "harmful_or_spam"),
+            "spoiler": sum(1 for report in reports if report.reason == "spoiler"),
+        }
         result.append({
-            "id": rating.id,
+            "id": f"review:{rating.id}",
+            "target_type": "review",
+            "target_id": rating.id,
             "user_id": rating.user_id,
             "username": rating.user.username if rating.user else "Unknown",
             "movie_title": rating.movie.title if rating.movie else "Unknown",
             "review_text": rating.review_text,
             "is_approved": rating.is_approved,
-            "created_at": rating.created_at
+            "created_at": rating.created_at,
+            "reason_counts": reason_counts,
         })
+    for reply in flagged_replies:
+        reports = db.query(ReviewReport).filter(ReviewReport.reply_id == reply.id).all()
+        reason_counts = {
+            "harmful_or_spam": sum(1 for report in reports if report.reason == "harmful_or_spam"),
+            "spoiler": sum(1 for report in reports if report.reason == "spoiler"),
+        }
+        result.append({
+            "id": f"reply:{reply.id}",
+            "target_type": "reply",
+            "target_id": reply.id,
+            "user_id": reply.user_id,
+            "username": reply.user.username if reply.user else "Unknown",
+            "movie_title": reply.rating.movie.title if reply.rating and reply.rating.movie else "Unknown",
+            "review_text": reply.body,
+            "is_approved": reply.is_approved,
+            "created_at": reply.created_at,
+            "reason_counts": reason_counts,
+        })
+    result.sort(key=lambda item: item["created_at"], reverse=True)
     return result
 
-@router.post("/moderation/{rating_id}/approve")
-def approve_flagged_content(rating_id: int, db: Session = Depends(deps.get_db)):
-    """Approve a flagged rating."""
+@router.post("/moderation/reviews/{rating_id}/approve")
+def approve_flagged_review(rating_id: int, db: Session = Depends(deps.get_db)):
     rating = db.query(Rating).filter(Rating.id == rating_id).first()
     if not rating:
         raise HTTPException(status_code=404, detail="Rating not found")
+    db.query(ReviewReport).filter(ReviewReport.rating_id == rating_id).delete()
     rating.is_flagged = False
+    rating.is_hidden = False
     rating.is_approved = True
     db.commit()
-    return {"message": "Content approved"}
+    return {"message": "Review approved"}
 
-@router.delete("/moderation/{rating_id}")
-def delete_flagged_content(rating_id: int, db: Session = Depends(deps.get_db)):
-    """Delete a flagged rating (clear the review text, or delete rating entirely if desired, here we just clear the text to keep the score)."""
+@router.post("/moderation/replies/{reply_id}/approve")
+def approve_flagged_reply(reply_id: int, db: Session = Depends(deps.get_db)):
+    reply = db.query(ReviewReply).filter(ReviewReply.id == reply_id).first()
+    if not reply:
+        raise HTTPException(status_code=404, detail="Reply not found")
+    db.query(ReviewReport).filter(ReviewReport.reply_id == reply_id).delete()
+    reply.is_flagged = False
+    reply.is_hidden = False
+    reply.is_approved = True
+    db.commit()
+    return {"message": "Reply approved"}
+
+@router.post("/moderation/reviews/{rating_id}/mark-spoiler")
+def mark_review_as_spoiler(rating_id: int, db: Session = Depends(deps.get_db)):
     rating = db.query(Rating).filter(Rating.id == rating_id).first()
     if not rating:
         raise HTTPException(status_code=404, detail="Rating not found")
-    # For now we'll just censor the text
+    rating.has_spoilers = True
+    rating.is_flagged = False
+    rating.is_hidden = False
+    rating.is_approved = True
+    db.query(ReviewReport).filter(ReviewReport.rating_id == rating_id).delete()
+    db.commit()
+    return {"message": "Review moved to spoiler section"}
+
+@router.post("/moderation/replies/{reply_id}/mark-spoiler")
+def mark_reply_as_spoiler(reply_id: int, db: Session = Depends(deps.get_db)):
+    reply = db.query(ReviewReply).filter(ReviewReply.id == reply_id).first()
+    if not reply:
+        raise HTTPException(status_code=404, detail="Reply not found")
+    reply.has_spoilers = True
+    reply.is_flagged = False
+    reply.is_hidden = False
+    reply.is_approved = True
+    if reply.rating:
+        reply.rating.has_spoilers = True
+        reply.rating.is_hidden = False
+        reply.rating.is_approved = True
+    db.query(ReviewReport).filter(ReviewReport.reply_id == reply_id).delete()
+    db.commit()
+    return {"message": "Reply thread moved to spoiler section"}
+
+@router.delete("/moderation/reviews/{rating_id}")
+def delete_flagged_review(rating_id: int, db: Session = Depends(deps.get_db)):
+    rating = db.query(Rating).filter(Rating.id == rating_id).first()
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
     rating.review_text = "[REMOVED BY MODERATOR]"
     rating.is_flagged = False
     rating.is_approved = False
+    rating.is_hidden = False
+    db.query(ReviewReport).filter(ReviewReport.rating_id == rating_id).delete()
     db.commit()
-    return {"message": "Content removed"}
+    return {"message": "Review removed"}
+
+@router.delete("/moderation/replies/{reply_id}")
+def delete_flagged_reply(reply_id: int, db: Session = Depends(deps.get_db)):
+    reply = db.query(ReviewReply).filter(ReviewReply.id == reply_id).first()
+    if not reply:
+        raise HTTPException(status_code=404, detail="Reply not found")
+    reply.body = "[REMOVED BY MODERATOR]"
+    reply.is_flagged = False
+    reply.is_approved = False
+    reply.is_hidden = False
+    db.query(ReviewReport).filter(ReviewReport.reply_id == reply_id).delete()
+    db.commit()
+    return {"message": "Reply removed"}

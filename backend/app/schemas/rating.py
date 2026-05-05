@@ -25,6 +25,7 @@ class RatingOut(RatingCreate):
     is_late: bool
     is_flagged: bool = False
     is_approved: bool = True
+    is_hidden: bool = False
 
     class Config:
         from_attributes = True

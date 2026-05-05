@@ -8,6 +8,7 @@ from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
 from app.models.user import User
 from app.schemas.drop import WeeklyDropOut, PastDropOut
+from app.services.movie_metadata import serialize_movie, serialize_movie_for_response
 from app.services.ratings_calculator import RatingsCalculator
 
 router = APIRouter()
@@ -35,7 +36,13 @@ def get_current_drop(db: Session = Depends(deps.get_db)):
         if not drop:
             raise HTTPException(status_code=404, detail="No active weekly drop found")
 
-    return drop
+    return {
+        "id": drop.id,
+        "movie": serialize_movie_for_response(db, drop.movie),
+        "start_date": drop.start_date,
+        "end_date": drop.end_date,
+        "is_active": drop.is_active,
+    }
 
 
 @router.get("/past", response_model=List[PastDropOut])
@@ -62,14 +69,7 @@ def get_past_drops(db: Session = Depends(deps.get_db), current_user: User | None
 
         drop_dict = {
             "id": drop.id,
-            "movie": {
-                "id": drop.movie.id,
-                "title": drop.movie.title,
-                "overview": drop.movie.overview,
-                "poster_path": drop.movie.poster_path,
-                "backdrop_path": drop.movie.backdrop_path,
-                "release_date": drop.movie.release_date
-            },
+            "movie": serialize_movie(drop.movie),
             "start_date": drop.start_date,
             "end_date": drop.end_date,
             "is_active": drop.is_active,
@@ -88,4 +88,10 @@ def get_drop_by_id(drop_id: int, db: Session = Depends(deps.get_db)):
     drop = db.query(WeeklyDrop).filter(WeeklyDrop.id == drop_id).first()
     if not drop:
         raise HTTPException(status_code=404, detail="Weekly drop not found")
-    return drop
+    return {
+        "id": drop.id,
+        "movie": serialize_movie_for_response(db, drop.movie),
+        "start_date": drop.start_date,
+        "end_date": drop.end_date,
+        "is_active": drop.is_active,
+    }

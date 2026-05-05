@@ -1,16 +1,10 @@
-import { ArrowLeft, Users, MonitorPlay } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-interface Movie {
-  title: string;
-  release_date: string | null;
-  backdrop_path: string | null;
-  director?: string;
-  overview?: string | null;
-}
+import { MovieMetaDetails } from '../../../components/MovieMetaDetails';
+import type { MovieSummary } from '../api';
 
 interface ResultsHeroProps {
-  movie: Movie;
+  movie: MovieSummary;
   totalVotes: number;
   officialScore: number;
   userScore: number | null;
@@ -64,28 +58,11 @@ export function ResultsHero({ movie, totalVotes, officialScore, userScore }: Res
               </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-6 text-sm font-medium text-zinc-400 mb-8">
-              {movie.director && <span>Dir. {movie.director}</span>}
-              {movie.director && <span className="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>}
-              <span className="flex items-center gap-1.5 text-zinc-300">
-                <Users size={16} /> {totalVotes.toLocaleString()} Votes Cast
-              </span>
-            </div>
-
-            {/* Where to Watch */}
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                Available to Stream
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center gap-2">
-                  <MonitorPlay size={14} className="text-blue-500" /> Crave
-                </button>
-                <button className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center gap-2">
-                  <MonitorPlay size={14} className="text-blue-500" /> Club Illico
-                </button>
-              </div>
-            </div>
+            <MovieMetaDetails
+              directorName={movie.director_name}
+              watchProviders={movie.watch_providers}
+              totalVotes={totalVotes}
+            />
           </div>
 
           {/* The Rating Spectrum (Timeline) */}
@@ -120,7 +97,6 @@ export function ResultsHero({ movie, totalVotes, officialScore, userScore }: Res
                 </div>
             </div>
           </div>
-
         </div>
       </div>
     </section>
