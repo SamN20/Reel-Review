@@ -1,6 +1,7 @@
 import { Play, Users, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { formatDateUTC } from "../lib/dateUtils";
 
 interface Movie {
   title: string;
@@ -18,9 +19,11 @@ interface WeeklyDrop {
 export function HeroSection({
   currentDrop,
   canManageDrops = false,
+  activeVoters = 0,
 }: {
   currentDrop: WeeklyDrop | null;
   canManageDrops?: boolean;
+  activeVoters?: number;
 }) {
   const navigate = useNavigate();
   const [partyComingSoon, setPartyComingSoon] = useState(false);
@@ -108,8 +111,10 @@ export function HeroSection({
           <span className="flex items-center gap-1.5 text-sm font-bold text-zinc-300 drop-shadow-md bg-zinc-900/50 px-3 py-1 rounded backdrop-blur-sm border border-zinc-800">
             <Clock size={16} className="text-red-500" />
             Closes{" "}
-            {new Date(currentDrop.end_date).toLocaleDateString("en-US", {
+            {formatDateUTC(currentDrop.end_date, {
               weekday: "long",
+              month: "short",
+              day: "numeric",
             })}
           </span>
         </div>
@@ -126,7 +131,7 @@ export function HeroSection({
         <div className="flex items-center gap-6 mb-8 text-sm font-semibold text-zinc-400">
           <div className="flex items-center gap-2">
             <Users size={18} className="text-zinc-300" />
-            <span className="text-white">Active</span> Users Voting
+            <span className="text-white">{activeVoters}</span> Active Users Voting
           </div>
         </div>
 

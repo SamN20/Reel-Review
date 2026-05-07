@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
+import { formatLocalDate, calculateEndOfWeek } from "../../../lib/dateUtils";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -94,8 +95,8 @@ export function DropsTab() {
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
 
-      const startStr = start.toISOString().split("T")[0];
-      const endStr = end.toISOString().split("T")[0];
+      const startStr = formatLocalDate(start);
+      const endStr = formatLocalDate(end);
 
       weeks.push({ start: startStr, end: endStr, dateObj: start });
     }
@@ -133,9 +134,7 @@ export function DropsTab() {
     if (!selectedWeekStart) return;
     if (!isFlexible && !selectedMovieId) return;
 
-    const end = new Date(selectedWeekStart);
-    end.setDate(end.getDate() + 6);
-    const endStr = end.toISOString().split("T")[0];
+    const endStr = calculateEndOfWeek(selectedWeekStart);
 
     try {
       const token = localStorage.getItem("token");
@@ -243,12 +242,14 @@ export function DropsTab() {
               : `Week -${pastWeeksCount - idx}`}
           </p>
           <p className="text-base sm:text-lg font-bold text-white">
-            {week.dateObj.toLocaleDateString("en-US", {
+            {new Date(week.start + "T00:00:00Z").toLocaleDateString("en-US", {
+              timeZone: "UTC",
               month: "short",
               day: "numeric",
             })}{" "}
             –{" "}
-            {new Date(week.end).toLocaleDateString("en-US", {
+            {new Date(week.end + "T00:00:00Z").toLocaleDateString("en-US", {
+              timeZone: "UTC",
               month: "short",
               day: "numeric",
             })}

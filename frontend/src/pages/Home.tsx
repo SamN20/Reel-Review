@@ -23,20 +23,32 @@ export default function Home() {
 
   const [currentDrop, setCurrentDrop] = useState<CurrentDrop | null>(null);
   const [pastDrops, setPastDrops] = useState([]);
+  const [activeVoters, setActiveVoters] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
     const fetchData = async () => {
+      let activeDropId: number | null = null;
       try {
         const currentRes = await axios.get(`${API_URL}/api/v1/drops/current`);
         setCurrentDrop(currentRes.data);
+        activeDropId = currentRes.data?.id || null;
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
           setCurrentDrop(null);
         } else {
           console.error("Failed to fetch current drop", err);
+        }
+      }
+
+      if (activeDropId !== null) {
+        try {
+          const resultsRes = await axios.get(`${API_URL}/api/v1/results/${activeDropId}`);
+          setActiveVoters(resultsRes.data?.total_votes || 0);
+        } catch (resErr) {
+          console.error("Failed to fetch active voters for current drop", resErr);
         }
       }
 
@@ -93,6 +105,7 @@ export default function Home() {
         <HeroSection
           currentDrop={currentDrop}
           canManageDrops={Boolean(user?.is_admin)}
+          activeVoters={activeVoters}
         />
 
         <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-16 -mt-8 relative z-20">
