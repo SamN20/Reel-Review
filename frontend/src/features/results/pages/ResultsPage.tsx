@@ -273,46 +273,52 @@ export default function ResultsPage() {
                       </div>
                     </button>
 
-                    {isExpanded ? (
-                      <div className="p-5 border-t border-zinc-800 bg-zinc-900/60 flex flex-col sm:flex-row gap-5 animate-in slide-in-from-top-2 duration-200">
-                        <img
-                          src={bgImage}
-                          className="w-20 h-28 object-cover rounded-lg shadow-md hidden sm:block"
-                          alt={data.movie.title}
-                        />
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start mb-5">
-                            <div>
-                              <h4 className="font-bold text-white mb-0.5">
-                                {data.movie.title}
-                              </h4>
-                              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                                {ranking.total_ranked} ranked titles in this list
-                              </p>
-                            </div>
-                            {ranking.badge ? (
-                              <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest mt-1">
-                                {ranking.badge}
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <div className="space-y-1.5">
-                            {ranking.surrounding.map((item) => (
-                              <div
-                                key={`${ranking.id}-${item.rank}-${item.title}`}
-                                className={`flex justify-between text-sm p-2.5 rounded-lg transition-colors ${item.is_current
-                                  ? "bg-zinc-800/80 text-amber-400 font-bold border border-zinc-700 shadow-inner"
-                                  : "text-zinc-400 font-medium"}`}
-                              >
-                                <span>{item.rank}. {item.title}</span>
-                                <span>{item.score}</span>
+                    <div 
+                      className={`grid transition-all duration-300 ease-in-out ${
+                        isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="p-5 border-t border-zinc-800 bg-zinc-900/60 flex flex-col sm:flex-row gap-5">
+                          <img
+                            src={bgImage}
+                            className="w-20 h-28 object-cover rounded-lg shadow-md hidden sm:block"
+                            alt={data.movie.title}
+                          />
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-5">
+                              <div>
+                                <h4 className="font-bold text-white mb-0.5">
+                                  {data.movie.title}
+                                </h4>
+                                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                                  {ranking.total_ranked} ranked titles in this list
+                                </p>
                               </div>
-                            ))}
+                              {ranking.badge ? (
+                                <p className="text-[10px] font-bold text-green-400 uppercase tracking-widest mt-1">
+                                  {ranking.badge}
+                                </p>
+                              ) : null}
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {ranking.surrounding.map((item) => (
+                                <div
+                                  key={`${ranking.id}-${item.rank}-${item.title}`}
+                                  className={`flex justify-between text-sm p-2.5 rounded-lg transition-colors ${item.is_current
+                                    ? "bg-zinc-800/80 text-amber-400 font-bold border border-zinc-700 shadow-inner"
+                                    : "text-zinc-400 font-medium"}`}
+                                >
+                                  <span>{item.rank}. {item.title}</span>
+                                  <span>{item.score}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    ) : null}
+                    </div>
                   </div>
                 );
               })}

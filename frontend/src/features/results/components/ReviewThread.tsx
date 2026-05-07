@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Flag, MessageSquare, TrendingUp, User } from "lucide-react";
+import { Flag, MessageSquare, TrendingUp, User, ChevronDown, ChevronUp } from "lucide-react";
 
 import type { Reply, ReportReason } from "../api";
 
@@ -20,8 +20,21 @@ export function ReviewThread({
   const [replyBody, setReplyBody] = useState("");
   const [showReportChoices, setShowReportChoices] = useState(false);
 
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isLongText = reply.body.length > 250;
+
+  const [showReplies, setShowReplies] = useState(reply.replies.length <= 2);
+
+  const handleReplySubmit = async () => {
+    if (!replyBody.trim()) return;
+    await onSubmitReply(reply.id, replyBody);
+    setReplyBody("");
+    setIsReplying(false);
+    setShowReplies(true);
+  };
+
   return (
-    <div className="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4">
+    <div className="space-y-3 pt-2">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-700">
@@ -36,7 +49,19 @@ export function ReviewThread({
         </div>
       </div>
 
-      <p className="text-sm text-zinc-300 whitespace-pre-wrap">{reply.body}</p>
+      <div className="relative">
+        <p className={`text-sm text-zinc-300 whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-4" : ""}`}>
+          {reply.body}
+        </p>
+        {isLongText && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-xs font-bold text-red-500 hover:text-red-400 mt-1 transition-colors"
+          >
+            {isExpanded ? "Show less" : "Read more"}
+          </button>
+        )}
+      </div>
 
       <div className="flex items-center gap-4 text-xs">
         <button
@@ -51,6 +76,15 @@ export function ReviewThread({
         >
           <MessageSquare size={14} /> Reply
         </button>
+        {reply.replies.length > 2 && (
+          <button
+            onClick={() => setShowReplies(!showReplies)}
+            className="font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 ml-1"
+          >
+            {showReplies ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {showReplies ? "Hide Replies" : `Show Replies (${reply.replies.length})`}
+          </button>
+        )}
         <div className="relative">
           <button
             onClick={() => setShowReportChoices((value) => !value)}
@@ -86,20 +120,22 @@ export function ReviewThread({
       {isReplying ? (
         <div className="space-y-2">
           <textarea
+            autoFocus
             value={replyBody}
             onChange={(event) => setReplyBody(event.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                void handleReplySubmit();
+              }
+            }}
             rows={3}
             className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white focus:outline-none focus:border-zinc-600"
-            placeholder="Write a reply..."
+            placeholder="Write a reply... (Ctrl+Enter to submit)"
           />
           <div className="flex gap-2">
             <button
-              onClick={async () => {
-                if (!replyBody.trim()) return;
-                await onSubmitReply(reply.id, replyBody);
-                setReplyBody("");
-                setIsReplying(false);
-              }}
+              onClick={() => void handleReplySubmit()}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500"
             >
               Post Reply
@@ -118,16 +154,24 @@ export function ReviewThread({
       ) : null}
 
       {reply.replies.length > 0 ? (
-        <div className="space-y-3 border-l border-zinc-800 pl-4">
-          {reply.replies.map((childReply) => (
-            <ReviewThread
-              key={childReply.id}
-              reply={childReply}
-              onToggleLike={onToggleLike}
-              onReport={onReport}
-              onSubmitReply={onSubmitReply}
-            />
-          ))}
+        <div 
+          className={`grid transition-all duration-300 ease-in-out ${
+            showReplies ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="mt-3 space-y-4 border-l-2 border-zinc-800/50 pl-5 ml-2">
+              {reply.replies.map((childReply) => (
+                <ReviewThread
+                  key={childReply.id}
+                  reply={childReply}
+                  onToggleLike={onToggleLike}
+                  onReport={onReport}
+                  onSubmitReply={onSubmitReply}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

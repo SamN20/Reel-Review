@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Award, Flag, MessageSquare, TrendingUp, User } from "lucide-react";
+import { Award, Flag, MessageSquare, TrendingUp, User, ChevronDown, ChevronUp } from "lucide-react";
 
 import type { ReportReason, Review } from "../api";
 import { ReviewThread } from "./ReviewThread";
@@ -29,6 +29,18 @@ export function ReviewCard({
   const [isReplying, setIsReplying] = useState(false);
   const [replyBody, setReplyBody] = useState("");
   const [showReportChoices, setShowReportChoices] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const isLongText = review.review_text.length > 250;
+
+  const handleReplySubmit = async () => {
+    if (!replyBody.trim()) return;
+    await onSubmitReply(review.id, replyBody);
+    setReplyBody("");
+    setIsReplying(false);
+    setShowReplies(true);
+  };
 
   const relationText =
     review.score_delta === 0
@@ -36,7 +48,7 @@ export function ReviewCard({
       : `${Math.abs(review.score_delta)} pts ${review.score_delta > 0 ? "above" : "below"} average`;
 
   return (
-    <div className="p-6 bg-zinc-900/40 rounded-2xl border border-zinc-800/60 hover:border-zinc-700 transition-colors">
+    <div className="py-6 border-b border-zinc-800/60 px-2 group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-700">
@@ -63,11 +75,21 @@ export function ReviewCard({
         </div>
       </div>
 
-      <p className="text-zinc-300 leading-relaxed text-[15px] whitespace-pre-wrap">
-        {review.review_text}
-      </p>
+      <div className="relative">
+        <p className={`text-zinc-300 leading-relaxed text-[15px] whitespace-pre-wrap ${!isExpanded && isLongText ? "line-clamp-4" : ""}`}>
+          {review.review_text}
+        </p>
+        {isLongText && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-xs font-bold text-red-500 hover:text-red-400 mt-2 transition-colors"
+          >
+            {isExpanded ? "Show less" : "Read more"}
+          </button>
+        )}
+      </div>
 
-      <div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center justify-between">
+      <div className="mt-4 pt-4 border-t border-zinc-800/30 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
             onClick={() => void onToggleLike(review.id)}
@@ -81,6 +103,15 @@ export function ReviewCard({
           >
             <MessageSquare size={14} /> Reply
           </button>
+          {review.replies.length > 0 && (
+            <button
+              onClick={() => setShowReplies(!showReplies)}
+              className="text-xs font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 ml-2"
+            >
+              {showReplies ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {showReplies ? "Hide Replies" : `Show Replies (${review.replies.length})`}
+            </button>
+          )}
         </div>
         <div className="relative">
           <button
@@ -118,20 +149,22 @@ export function ReviewCard({
       {isReplying ? (
         <div className="mt-4 space-y-2">
           <textarea
+            autoFocus
             value={replyBody}
             onChange={(event) => setReplyBody(event.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                void handleReplySubmit();
+              }
+            }}
             rows={3}
             className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white focus:outline-none focus:border-zinc-600"
-            placeholder="Join the conversation..."
+            placeholder="Join the conversation... (Ctrl+Enter to submit)"
           />
           <div className="flex gap-2">
             <button
-              onClick={async () => {
-                if (!replyBody.trim()) return;
-                await onSubmitReply(review.id, replyBody);
-                setReplyBody("");
-                setIsReplying(false);
-              }}
+              onClick={() => void handleReplySubmit()}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500"
             >
               Post Reply
@@ -150,18 +183,26 @@ export function ReviewCard({
       ) : null}
 
       {review.replies.length > 0 ? (
-        <div className="mt-4 space-y-3 border-l border-zinc-800 pl-4">
-          {review.replies.map((reply) => (
-            <ReviewThread
-              key={reply.id}
-              reply={reply}
-              onToggleLike={onToggleReplyLike}
-              onReport={onReportReply}
-              onSubmitReply={(parentReplyId, body) =>
-                onSubmitReply(review.id, body, parentReplyId)
-              }
-            />
-          ))}
+        <div 
+          className={`grid transition-all duration-300 ease-in-out ${
+            showReplies ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="mt-4 space-y-4 border-l-2 border-zinc-800/50 pl-5 ml-2">
+              {review.replies.map((reply) => (
+                <ReviewThread
+                  key={reply.id}
+                  reply={reply}
+                  onToggleLike={onToggleReplyLike}
+                  onReport={onReportReply}
+                  onSubmitReply={(parentReplyId, body) =>
+                    onSubmitReply(review.id, body, parentReplyId)
+                  }
+                />
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

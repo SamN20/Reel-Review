@@ -42,7 +42,18 @@ export function CommunityTakes({
   const [error, setError] = useState<string | null>(null);
 
   const refreshReviews = useCallback(async (tab = activeTab, sort = activeSort) => {
-    setLoading(true);
+    // Use a local variable to decide whether to set loading to true.
+    // We only want a hard loading flash if we don't have data yet.
+    let isInitialLoad = false;
+    setReviews((current) => {
+      if (current.length === 0) {
+        isInitialLoad = true;
+      }
+      return current;
+    });
+
+    if (isInitialLoad) setLoading(true);
+    
     try {
       const response = await fetchResultsReviews(String(dropId), tab, sort);
       setReviews(response.items);
@@ -145,6 +156,30 @@ export function CommunityTakes({
         </div>
       </div>
 
+      {/* Filter / Sort Bar */}
+      {!(activeTab === "spoilers" && !showSpoilers) && (
+        <div className="flex items-center gap-5 mb-6 text-sm border-b border-zinc-900 pb-4">
+          <button
+            onClick={() => setActiveSort("top")}
+            className={`flex items-center gap-1.5 font-semibold ${activeSort === "top" ? "text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+          >
+            <TrendingUp size={16} className="text-red-500" /> Top Rated Comments
+          </button>
+          <button
+            onClick={() => setActiveSort("recent")}
+            className={activeSort === "recent" ? "text-white font-semibold" : "text-zinc-500 hover:text-zinc-300 font-medium"}
+          >
+            Most Recent
+          </button>
+          <button
+            onClick={() => setActiveSort("controversial")}
+            className={activeSort === "controversial" ? "text-white font-semibold" : "text-zinc-500 hover:text-zinc-300 font-medium"}
+          >
+            Controversial
+          </button>
+        </div>
+      )}
+
       {activeTab === 'spoiler-free' ? (
         <>
           {/* MATCH CARDS (Perfect Match vs Polar Opposite) */}
@@ -198,30 +233,8 @@ export function CommunityTakes({
             )}
           </div>
 
-          {/* Filter / Sort Bar */}
-          <div className="flex items-center gap-5 mb-6 text-sm border-b border-zinc-900 pb-4">
-            <button
-              onClick={() => setActiveSort("top")}
-              className={`flex items-center gap-1.5 font-semibold ${activeSort === "top" ? "text-white" : "text-zinc-500 hover:text-zinc-300"}`}
-            >
-              <TrendingUp size={16} className="text-red-500" /> Top Rated Comments
-            </button>
-            <button
-              onClick={() => setActiveSort("recent")}
-              className={activeSort === "recent" ? "text-white font-semibold" : "text-zinc-500 hover:text-zinc-300 font-medium"}
-            >
-              Most Recent
-            </button>
-            <button
-              onClick={() => setActiveSort("controversial")}
-              className={activeSort === "controversial" ? "text-white font-semibold" : "text-zinc-500 hover:text-zinc-300 font-medium"}
-            >
-              Controversial
-            </button>
-          </div>
-
           {/* Reviews List */}
-          <div className="space-y-4">
+          <div key={activeSort} className="flex flex-col animate-in fade-in duration-500">
             {loading ? (
               <div className="p-8 text-center text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800">
                 Loading community takes...
@@ -299,7 +312,7 @@ export function CommunityTakes({
               </button>
             </div>
           ) : (
-            <div className="space-y-4 animate-in fade-in duration-500">
+            <div key={activeSort} className="flex flex-col animate-in fade-in duration-500">
               {loading ? (
                 <div className="p-8 text-center text-zinc-500 bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-800">
                   Loading spoiler takes...
