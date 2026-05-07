@@ -6,6 +6,7 @@ import { FilmShelf } from "../components/FilmShelf";
 import { CommunityDiscussions } from "../components/CommunityDiscussions";
 import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
+import { LoadingScreen } from "../components/LoadingScreen";
 
 interface CurrentDrop {
   id: number;
@@ -21,18 +22,37 @@ interface CurrentDrop {
 export default function Home() {
   const { user, loading: authLoading, login } = useAuth();
 
-  const [currentDrop, setCurrentDrop] = useState<CurrentDrop | null>(null);
-  const [pastDrops, setPastDrops] = useState([]);
-  const [activeVoters, setActiveVoters] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  // Initialize from cache if available to enable instant rendering without flash
+  const cachedDataStr = localStorage.getItem("reelreview_home_cache");
+  let cachedData: any = null;
+  try {
+    cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
+  } catch (e) {
+    console.error("Failed to parse cached home page data", e);
+  }
+
+  const [currentDrop, setCurrentDrop] = useState<CurrentDrop | null>(cachedData?.currentDrop || null);
+  const [pastDrops, setPastDrops] = useState(cachedData?.pastDrops || []);
+  const [activeVoters, setActiveVoters] = useState<number>(cachedData?.activeVoters || 0);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [showLoader, setShowLoader] = useState(!cachedData);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
+    const startTime = Date.now();
+    const MIN_LOAD_TIME = 800; // minimum loader duration in ms
+    const hasCache = Boolean(cachedData);
+
     const fetchData = async () => {
       let activeDropId: number | null = null;
+      let fetchedCurrentDrop = null;
+      let fetchedActiveVoters = 0;
+      let fetchedPastDrops = [];
+
       try {
         const currentRes = await axios.get(`${API_URL}/api/v1/drops/current`);
+        fetchedCurrentDrop = currentRes.data;
         setCurrentDrop(currentRes.data);
         activeDropId = currentRes.data?.id || null;
       } catch (err) {
@@ -46,7 +66,8 @@ export default function Home() {
       if (activeDropId !== null) {
         try {
           const resultsRes = await axios.get(`${API_URL}/api/v1/results/${activeDropId}`);
-          setActiveVoters(resultsRes.data?.total_votes || 0);
+          fetchedActiveVoters = resultsRes.data?.total_votes || 0;
+          setActiveVoters(fetchedActiveVoters);
         } catch (resErr) {
           console.error("Failed to fetch active voters for current drop", resErr);
         }
@@ -59,12 +80,36 @@ export default function Home() {
         const pastRes = await axios.get(`${API_URL}/api/v1/drops/past`, {
           headers,
         });
+        fetchedPastDrops = pastRes.data;
         setPastDrops(pastRes.data);
       } catch (err) {
         console.error("Failed to fetch past drops", err);
       }
 
-      setLoading(false);
+      // Update Cache
+      localStorage.setItem(
+        "reelreview_home_cache",
+        JSON.stringify({
+          currentDrop: fetchedCurrentDrop,
+          pastDrops: fetchedPastDrops,
+          activeVoters: fetchedActiveVoters,
+          timestamp: Date.now(),
+        })
+      );
+
+      if (!hasCache) {
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, MIN_LOAD_TIME - elapsedTime);
+
+        setTimeout(() => {
+          setIsFadingOut(true);
+          setTimeout(() => {
+            setShowLoader(false);
+          }, 500); // matches the transition-opacity duration
+        }, remainingTime);
+      } else {
+        setShowLoader(false);
+      }
     };
 
     if (!authLoading) {
@@ -72,10 +117,15 @@ export default function Home() {
     }
   }, [authLoading, user, API_URL]);
 
-  if (authLoading || loading) {
+  if (authLoading || showLoader) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
-        Loading...
+      <div
+        className={`fixed inset-0 z-[9999] transition-opacity duration-500 ease-out-cubic ${
+          isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+        style={{ transitionTimingFunction: "cubic-bezier(0.25, 1, 0.5, 1)" }}
+      >
+        <LoadingScreen message="Synchronizing with the Film Shelf..." />
       </div>
     );
   }

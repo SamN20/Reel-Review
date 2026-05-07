@@ -1,6 +1,6 @@
 import { Play, Users, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDateUTC } from "../lib/dateUtils";
 
 interface Movie {
@@ -14,6 +14,44 @@ interface WeeklyDrop {
   movie: Movie;
   start_date: string;
   end_date: string;
+}
+
+export function AnimatedCounter({ value, duration = 1200 }: { value: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = count;
+    const end = value;
+    if (start === end) return;
+
+    const range = end - start;
+    const startTime = performance.now();
+
+    let animationFrameId: number;
+
+    const updateCount = (timestamp: number) => {
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easeOutQuad curves
+      const easeProgress = progress * (2 - progress);
+      const nextCount = Math.round(start + range * easeProgress);
+
+      setCount(nextCount);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(updateCount);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(updateCount);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [value, duration]);
+
+  return <span className="text-white font-extrabold tabular-nums tracking-wide">{count}</span>;
 }
 
 export function HeroSection({
@@ -131,7 +169,7 @@ export function HeroSection({
         <div className="flex items-center gap-6 mb-8 text-sm font-semibold text-zinc-400">
           <div className="flex items-center gap-2">
             <Users size={18} className="text-zinc-300" />
-            <span className="text-white">{activeVoters}</span> Active Users Voting
+            <AnimatedCounter value={activeVoters} /> Active Users Voting
           </div>
         </div>
 
