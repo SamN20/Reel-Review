@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { Film, RefreshCcw, Ticket } from "lucide-react";
 
-import { LoadingScreen } from "../../../components/LoadingScreen";
 import { SiteFooter } from "../../../components/SiteFooter";
 import { SiteHeader } from "../../../components/SiteHeader";
 import { useAuth } from "../../../context/AuthContext";
 import { fetchArchiveShelves, type ArchiveShelf } from "../api";
 import { ShelfRow } from "../components/ShelfRow";
+import { FilmShelfSkeleton } from "../components/ShelfSkeleton";
 
 export default function FilmShelfPage() {
   const { user, loading: authLoading } = useAuth();
   const [shelves, setShelves] = useState<ArchiveShelf[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSkeletons, setShowSkeletons] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function FilmShelfPage() {
     async function loadShelves() {
       try {
         setLoading(true);
+        setShowSkeletons(false);
         setError(null);
         const response = await fetchArchiveShelves(Boolean(user));
         if (isMounted) {
@@ -46,13 +48,20 @@ export default function FilmShelfPage() {
     };
   }, [authLoading, user]);
 
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-zinc-950">
-        <LoadingScreen message="Opening the Film Shelf..." />
-      </div>
-    );
-  }
+  const isLoadingShelves = authLoading || loading;
+  const shouldShowSkeletons = isLoadingShelves && showSkeletons;
+
+  useEffect(() => {
+    if (!isLoadingShelves) {
+      return;
+    }
+
+    const skeletonDelay = window.setTimeout(() => {
+      setShowSkeletons(true);
+    }, 220);
+
+    return () => window.clearTimeout(skeletonDelay);
+  }, [isLoadingShelves]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-zinc-950 text-zinc-50 selection:bg-red-600 selection:text-white">
@@ -88,7 +97,11 @@ export default function FilmShelfPage() {
           </div>
         </section>
 
-        {error ? (
+        {shouldShowSkeletons ? (
+          <FilmShelfSkeleton />
+        ) : isLoadingShelves ? (
+          <div className="min-h-[42vh]" aria-hidden="true" />
+        ) : error ? (
           <section className="mx-auto max-w-3xl px-4 md:px-8">
             <div className="rounded-lg border border-red-900/50 bg-red-950/30 p-6 text-center">
               <RefreshCcw className="mx-auto mb-3 text-red-500" size={28} />
@@ -98,8 +111,8 @@ export default function FilmShelfPage() {
           </section>
         ) : shelves.length > 0 ? (
           <div className="space-y-10">
-            {shelves.map((shelf) => (
-              <ShelfRow key={shelf.id} shelf={shelf} />
+            {shelves.map((shelf, index) => (
+              <ShelfRow key={shelf.id} shelf={shelf} index={index} />
             ))}
           </div>
         ) : (

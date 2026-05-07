@@ -15,15 +15,19 @@ const SHELF_ICONS: Record<ArchiveShelfKind, LucideIcon> = {
 
 interface ShelfRowProps {
   shelf: ArchiveShelf;
+  index?: number;
 }
 
-export function ShelfRow({ shelf }: ShelfRowProps) {
+export function ShelfRow({ shelf, index = 0 }: ShelfRowProps) {
   const navigate = useNavigate();
   const scrollProps = useDraggableScroll<HTMLDivElement>();
   const Icon = SHELF_ICONS[shelf.kind] ?? Sparkles;
 
   return (
-    <section className="relative">
+    <section
+      className="film-shelf-content-in relative"
+      style={{ animationDelay: `${Math.min(index, 5) * 70}ms` }}
+    >
       <div className="mb-4 flex items-end justify-between gap-4 px-4 md:px-8">
         <div className="min-w-0">
           <div className="flex items-center gap-2">

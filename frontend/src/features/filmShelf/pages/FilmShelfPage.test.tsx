@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import FilmShelfPage from "./FilmShelfPage";
 import type { ArchiveShelvesResponse } from "../api";
@@ -94,6 +94,35 @@ const archiveResponse: ArchiveShelvesResponse = {
 };
 
 describe("FilmShelfPage", () => {
+  beforeEach(() => {
+    vi.mocked(fetchArchiveShelves).mockReset();
+    vi.useRealTimers();
+  });
+
+  it("renders page chrome immediately and delays shelf skeletons while archive data is pending", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchArchiveShelves).mockImplementation(() => new Promise(() => {}));
+
+    render(
+      <MemoryRouter initialEntries={["/film-shelf"]}>
+        <Routes>
+          <Route path="/film-shelf" element={<FilmShelfPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("heading", { name: "The Film Shelf" })).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Loading Film Shelf shelves" })).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(240);
+    });
+
+    expect(screen.getByRole("status", { name: "Loading Film Shelf shelves" })).toBeInTheDocument();
+    expect(screen.getAllByTestId("film-shelf-skeleton-row")).toHaveLength(4);
+    expect(screen.queryByText("Opening the Film Shelf...")).not.toBeInTheDocument();
+  });
+
   it("renders dynamic shelves with missed and rated states", async () => {
     vi.mocked(fetchArchiveShelves).mockResolvedValue(archiveResponse);
 
@@ -105,16 +134,39 @@ describe("FilmShelfPage", () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByRole("heading", { name: "The Film Shelf" })).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Loading Film Shelf shelves" })).not.toBeInTheDocument();
+
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "The Film Shelf" })).toBeInTheDocument();
+      expect(screen.getByText("Missed By You")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Missed By You")).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Loading Film Shelf shelves" })).not.toBeInTheDocument();
     expect(screen.getByText("Missed Movie")).toBeInTheDocument();
     expect(screen.getByText("Open for votes")).toBeInTheDocument();
     expect(screen.getByText("Top Rated Overall")).toBeInTheDocument();
     expect(screen.getByText("Rated Movie")).toBeInTheDocument();
     expect(screen.getByText("Rated")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
+  });
+
+  it("renders the error state after archive loading fails", async () => {
+    vi.mocked(fetchArchiveShelves).mockRejectedValue(new Error("No shelf for you"));
+
+    render(
+      <MemoryRouter initialEntries={["/film-shelf"]}>
+        <Routes>
+          <Route path="/film-shelf" element={<FilmShelfPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("heading", { name: "The Film Shelf" })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("The Film Shelf could not be loaded.")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("status", { name: "Loading Film Shelf shelves" })).not.toBeInTheDocument();
   });
 });
