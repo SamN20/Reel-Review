@@ -8,12 +8,17 @@ import FilmShelfPage from "./pages/FilmShelfPage";
 import LeaderboardsPage from "./pages/LeaderboardsPage";
 import DiscussionsPage from "./pages/DiscussionsPage";
 import Results from "./features/results/pages/ResultsPage";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Attribution from "./pages/Attribution";
+import { ScrollToTop } from "./components/ScrollToTop";
 import "./index.css";
 
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -24,6 +29,9 @@ function App() {
           <Route path="/leaderboards" element={<LeaderboardsPage />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/attribution" element={<Attribution />} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -5,6 +5,7 @@ import { HeroSection } from "../components/HeroSection";
 import { FilmShelf } from "../components/FilmShelf";
 import { CommunityDiscussions } from "../components/CommunityDiscussions";
 import { SiteHeader } from "../components/SiteHeader";
+import { SiteFooter } from "../components/SiteFooter";
 
 interface CurrentDrop {
   id: number;
@@ -85,10 +86,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-red-600 selection:text-white pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-red-600 selection:text-white flex flex-col overflow-x-hidden">
       <SiteHeader activeSection="current-week" />
 
-      <main>
+      <main className="flex-1 pb-16">
         <HeroSection
           currentDrop={currentDrop}
           canManageDrops={Boolean(user?.is_admin)}
@@ -99,6 +100,8 @@ export default function Home() {
           <CommunityDiscussions />
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
