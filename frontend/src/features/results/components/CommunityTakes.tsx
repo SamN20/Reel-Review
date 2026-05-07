@@ -20,6 +20,7 @@ import {
   type ReviewTab,
 } from "../api";
 import { ReviewCard } from "./ReviewCard";
+import { useAuth } from "../../../context/AuthContext";
 
 interface CommunityTakesProps {
   dropId: number;
@@ -73,24 +74,57 @@ export function CommunityTakes({
     return () => window.clearTimeout(timeoutId);
   }, [refreshReviews]);
 
+  const { user } = useAuth();
+
   const activeReviews = reviews;
   const targetScore = userScore ?? officialScore;
+
+  // Filter out the user's own reviews to avoid matching with themselves
+  const otherReviews = user
+    ? activeReviews.filter((r) => r.user_name !== user.username)
+    : activeReviews;
+
   const perfectMatch =
-    activeReviews.length > 0
-      ? [...activeReviews].sort(
-          (left, right) =>
-            Math.abs(left.overall_score - targetScore) -
-            Math.abs(right.overall_score - targetScore),
-        )[0]
+    otherReviews.length > 0
+      ? [...otherReviews].sort((left, right) => {
+          const diffA = Math.abs(left.overall_score - targetScore);
+          const diffB = Math.abs(right.overall_score - targetScore);
+          if (diffA !== diffB) {
+            return diffA - diffB;
+          }
+          // Tie breaker: most liked review
+          return right.like_count - left.like_count;
+        })[0]
       : null;
+
   const polarOpposite =
-    activeReviews.length > 1
-      ? [...activeReviews].sort(
-          (left, right) =>
-            Math.abs(right.overall_score - targetScore) -
-            Math.abs(left.overall_score - targetScore),
-        )[0]
+    otherReviews.length > 1
+      ? [...otherReviews].sort((left, right) => {
+          const diffA = Math.abs(left.overall_score - targetScore);
+          const diffB = Math.abs(right.overall_score - targetScore);
+          if (diffA !== diffB) {
+            // Sort descending to get the furthest distance (polar opposite)
+            return diffB - diffA;
+          }
+          // Tie breaker: most liked review
+          return right.like_count - left.like_count;
+        })[0]
       : null;
+
+  const highestMatchReviewId = (() => {
+    if (userScore === null || !user) return null;
+    if (otherReviews.length === 0) return null;
+    
+    const sorted = [...otherReviews].sort((left, right) => {
+      const diffA = Math.abs(left.overall_score - userScore);
+      const diffB = Math.abs(right.overall_score - userScore);
+      if (diffA !== diffB) {
+        return diffA - diffB;
+      }
+      return right.like_count - left.like_count;
+    });
+    return sorted[0]?.id ?? null;
+  })();
 
   const updateReviewLikeState = (reviewId: number, likeCount: number, liked: boolean) => {
     setReviews((currentReviews) =>
@@ -188,7 +222,7 @@ export function CommunityTakes({
               <div className="bg-green-950/10 border border-green-900/40 rounded-2xl p-5 flex flex-col justify-between hover:bg-green-950/20 transition-colors">
                 <div>
                   <div className="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-widest mb-3">
-                    <Trophy size={14} /> {userScore ? 'Perfect Match' : 'Community Favorite'}
+                    <Trophy size={14} /> {userScore ? (perfectMatch.overall_score === userScore ? 'Perfect Match' : 'Closest Match') : 'Community Favorite'}
                   </div>
                   <p className="text-zinc-200 text-[15px] italic font-medium leading-relaxed mb-6">
                     "{perfectMatch.review_text.substring(0, 100)}{perfectMatch.review_text.length > 100 ? '...' : ''}"
@@ -201,7 +235,7 @@ export function CommunityTakes({
                     <div>
                     <div className="font-bold text-white text-sm">{perfectMatch.user_name}</div>
                     <div className="text-[10px] font-bold text-green-500 uppercase tracking-widest">
-                      Rated {perfectMatch.overall_score} • {userScore ? 'Same As You' : 'Top Rated'}
+                      Rated {perfectMatch.overall_score} • {userScore ? (perfectMatch.overall_score === userScore ? 'Same As You' : `${Math.abs(perfectMatch.overall_score - userScore)} Pt Diff`) : 'Top Rated'}
                     </div>
                   </div>
                 </div>
@@ -244,12 +278,12 @@ export function CommunityTakes({
                 {error}
               </div>
             ) : activeReviews.length > 0 ? (
-              activeReviews.map((review, i) => (
+              activeReviews.map((review) => (
                 <ReviewCard
                   key={review.id}
                   review={review}
                   officialScore={officialScore}
-                  isHighestMatch={i === 0}
+                  isHighestMatch={review.id === highestMatchReviewId}
                   onToggleLike={async (reviewId) => {
                     const response = await toggleReviewLike(reviewId);
                     updateReviewLikeState(reviewId, response.like_count, response.liked);
@@ -323,6 +357,7 @@ export function CommunityTakes({
                     key={review.id}
                     review={review}
                     officialScore={officialScore}
+                    isHighestMatch={review.id === highestMatchReviewId}
                     onToggleLike={async (reviewId) => {
                       const response = await toggleReviewLike(reviewId);
                       updateReviewLikeState(reviewId, response.like_count, response.liked);

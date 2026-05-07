@@ -100,7 +100,7 @@ export default function Vote() {
           today.setHours(0, 0, 0, 0);
           const endDate = new Date(drop.end_date);
           endDate.setHours(0, 0, 0, 0);
-          
+
           if (endDate < today) {
             setIsLocked(true);
           }
@@ -182,13 +182,20 @@ export default function Vote() {
     );
   }
 
+  const bgImage = drop?.movie?.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${drop.movie.backdrop_path}`
+    : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2025&auto=format&fit=crop";
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-red-600 selection:text-white flex flex-col lg:flex-row lg:h-screen lg:overflow-hidden">
       {/* LEFT COLUMN: Movie Details (Context) */}
       <div className="w-full lg:w-1/2 relative flex flex-col justify-between min-h-[60vh] lg:min-h-0 lg:h-screen pb-12 lg:pb-0">
         {/* Background Artwork */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2025&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-luminosity"></div>
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-luminosity"
+            style={{ backgroundImage: `url(${bgImage})` }}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent lg:bg-gradient-to-r lg:from-zinc-950/40 lg:via-zinc-950/80 lg:to-zinc-950"></div>
         </div>
 
@@ -249,11 +256,10 @@ export default function Vote() {
 
           <div className="space-y-2">
             <h2 className="text-2xl font-black tracking-tight">
-              Lock in your vote.
+              Share your rating.
             </h2>
             <p className="text-zinc-400 text-sm">
-              Your vote is final until the week ends. Community stats are hidden
-              to prevent bias.
+              You can adjust or update your rating as long as this drop remains the active movie.
             </p>
           </div>
 
@@ -380,7 +386,7 @@ export default function Vote() {
                 onChange={(e) => !isLocked && setReviewText(e.target.value)}
                 disabled={isLocked}
                 className={`w-full h-32 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-600/50 focus:border-red-600 resize-none transition-all ${isLocked ? "cursor-not-allowed opacity-80" : ""}`}
-                placeholder="What did you think of the movie? Keep it spoiler-free, or head to the discussion boards for deep dives."
+                placeholder="What did you think of the movie? If your review contains plot twists, ending details, or major spoilers, be sure to check the spoiler toggle below."
               />
               <div className="absolute bottom-4 right-4 flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
                 <ShieldCheck size={14} /> Auto-moderated
@@ -452,11 +458,10 @@ export default function Vote() {
                 onClick={handleSubmit}
                 disabled={overallScore === 0 || submitting}
                 className={`w-full py-5 rounded-xl font-black text-lg uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-2xl
-                                  ${
-                                    overallScore > 0 && !submitting
-                                      ? "bg-red-600 text-white hover:bg-red-500 hover:-translate-y-1 shadow-red-900/30"
-                                      : "bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800"
-                                  }`}
+                                  ${overallScore > 0 && !submitting
+                    ? "bg-red-600 text-white hover:bg-red-500 hover:-translate-y-1 shadow-red-900/30"
+                    : "bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800"
+                  }`}
               >
                 {submitting
                   ? "Submitting..."
