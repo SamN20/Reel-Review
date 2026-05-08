@@ -42,6 +42,29 @@ def extract_watch_provider_regions(provider_results: dict[str, Any] | None) -> d
     return watch_providers
 
 
+def extract_youtube_trailer_key(videos: dict[str, Any] | None) -> str | None:
+    """Pick the best official YouTube trailer key from a TMDB videos payload."""
+    video_results = videos.get("results", []) if videos else []
+    youtube_videos = [
+        video
+        for video in video_results
+        if video.get("site") == "YouTube" and video.get("key")
+    ]
+    if not youtube_videos:
+        return None
+
+    def trailer_rank(video: dict[str, Any]) -> tuple[int, int, str]:
+        video_type = video.get("type")
+        name = (video.get("name") or "").lower()
+        official = 1 if video.get("official") else 0
+        type_score = 3 if video_type == "Trailer" else 2 if video_type == "Teaser" else 1
+        name_score = 1 if "official" in name or "trailer" in name else 0
+        return (type_score, official + name_score, video.get("published_at") or "")
+
+    best_video = max(youtube_videos, key=trailer_rank)
+    return best_video.get("key")
+
+
 def fetch_tmdb_watch_providers(tmdb_id: int) -> dict[str, Any]:
     with httpx.Client(timeout=20.0) as client:
         response = client.get(
@@ -131,6 +154,7 @@ def serialize_movie(movie: Any) -> dict[str, Any]:
         "overview": movie.overview,
         "poster_path": movie.poster_path,
         "backdrop_path": movie.backdrop_path,
+        "trailer_youtube_key": getattr(movie, "trailer_youtube_key", None),
         "release_date": movie.release_date,
         "director_name": getattr(movie, "director_name", None),
         "genres": movie.genres or [],

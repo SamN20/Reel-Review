@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Film, RefreshCcw, Ticket } from "lucide-react";
+import { RefreshCcw, Ticket } from "lucide-react";
 
 import { SiteFooter } from "../../../components/SiteFooter";
 import { SiteHeader } from "../../../components/SiteHeader";
 import { useAuth } from "../../../context/AuthContext";
 import { fetchArchiveShelves, type ArchiveShelf } from "../api";
+import { FilmShelfDiscoverHero } from "../components/FilmShelfDiscoverHero";
 import { ShelfRow } from "../components/ShelfRow";
 import { FilmShelfSkeleton } from "../components/ShelfSkeleton";
 
@@ -50,52 +51,41 @@ export default function FilmShelfPage() {
 
   const isLoadingShelves = authLoading || loading;
   const shouldShowSkeletons = isLoadingShelves && showSkeletons;
+  const hasShelves = !isLoadingShelves && !error && shelves.length > 0;
 
   useEffect(() => {
     if (!isLoadingShelves) {
       return;
     }
 
-    const skeletonDelay = window.setTimeout(() => {
+    const skeletonDelay = setTimeout(() => {
       setShowSkeletons(true);
     }, 220);
 
-    return () => window.clearTimeout(skeletonDelay);
+    return () => clearTimeout(skeletonDelay);
   }, [isLoadingShelves]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-zinc-950 text-zinc-50 selection:bg-red-600 selection:text-white">
       <SiteHeader activeSection="film-shelf" />
 
-      <main className="pb-16 pt-24 md:pt-28">
-        <section className="relative px-4 pb-8 md:px-8 md:pb-10">
-          <div className="mx-auto max-w-7xl">
-            <div className="flex flex-col gap-5 border-b border-zinc-900 pb-8 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-3xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded border border-zinc-800 bg-zinc-900/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-300">
-                  <Film size={13} className="text-red-600" />
-                  Dynamic Archive
+      <main className={`pb-16 ${hasShelves ? "" : "pt-24 md:pt-28"}`}>
+        {!hasShelves ? (
+          <section className="relative px-4 pb-8 md:px-8 md:pb-10">
+            <div className="mx-auto max-w-7xl">
+              <div className="flex flex-col gap-5 border-b border-zinc-900 pb-8 md:flex-row md:items-end md:justify-between">
+                <div className="max-w-3xl">
+                  <h1 className="text-4xl font-black leading-none tracking-tight text-white md:text-6xl">
+                    The Film Shelf
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-400 md:text-lg">
+                    Browse past drops, catch up on movies you missed, and revisit how the community scored each week.
+                  </p>
                 </div>
-                <h1 className="text-4xl font-black leading-none tracking-tight text-white md:text-6xl">
-                  The Film Shelf
-                </h1>
-                <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-400 md:text-lg">
-                  Browse past drops, catch up on movies you missed, and revisit how the community scored each week.
-                </p>
               </div>
-              {/* <div className="grid grid-cols-2 gap-3 sm:flex">
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Shelves</p>
-                  <p className="mt-1 text-2xl font-black text-white tabular-nums">{shelves.length}</p>
-                </div>
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Viewing</p>
-                  <p className="mt-1 text-sm font-black text-white">{user ? "Personalized" : "Public"}</p>
-                </div>
-              </div> */}
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         {shouldShowSkeletons ? (
           <FilmShelfSkeleton />
@@ -109,8 +99,9 @@ export default function FilmShelfPage() {
               <p className="mt-2 text-sm text-zinc-400">Refresh the page to try again.</p>
             </div>
           </section>
-        ) : shelves.length > 0 ? (
+        ) : hasShelves ? (
           <div className="space-y-10">
+            <FilmShelfDiscoverHero shelves={shelves} />
             {shelves.map((shelf, index) => (
               <ShelfRow key={shelf.id} shelf={shelf} index={index} />
             ))}

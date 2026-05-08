@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronRight, Ticket } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { SiteFooter } from "../../../components/SiteFooter";
@@ -57,10 +57,10 @@ export default function VoteOrderPage() {
 
         <div className="mb-8 flex flex-col gap-3 border-b border-zinc-900 pb-8 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded border border-zinc-800 bg-zinc-900/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-300">
+            {/* <div className="mb-3 inline-flex items-center gap-2 rounded border border-zinc-800 bg-zinc-900/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-300">
               <Ticket size={13} className="text-red-600" />
               Vote Order
-            </div>
+            </div> */}
             <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">
               Complete Archive
             </h1>

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -43,6 +43,7 @@ const archiveResponse: ArchiveShelvesResponse = {
             overview: "A missed movie.",
             poster_path: null,
             backdrop_path: "/missed.jpg",
+            trailer_youtube_key: "missedTrailer",
             director_name: "Director",
             genres: [{ name: "Drama" }],
             watch_providers: [],
@@ -75,6 +76,7 @@ const archiveResponse: ArchiveShelvesResponse = {
             overview: "A rated movie.",
             poster_path: null,
             backdrop_path: "/rated.jpg",
+            trailer_youtube_key: null,
             director_name: "Director",
             genres: [{ name: "Sci-Fi" }],
             watch_providers: [],
@@ -100,7 +102,6 @@ describe("FilmShelfPage", () => {
   });
 
   it("renders page chrome immediately and delays shelf skeletons while archive data is pending", async () => {
-    vi.useFakeTimers();
     vi.mocked(fetchArchiveShelves).mockImplementation(() => new Promise(() => {}));
 
     render(
@@ -114,11 +115,9 @@ describe("FilmShelfPage", () => {
     expect(screen.getByRole("heading", { name: "The Film Shelf" })).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Loading Film Shelf shelves" })).not.toBeInTheDocument();
 
-    await act(async () => {
-      vi.advanceTimersByTime(240);
+    await waitFor(() => {
+      expect(screen.getByRole("status", { name: "Loading Film Shelf shelves" })).toBeInTheDocument();
     });
-
-    expect(screen.getByRole("status", { name: "Loading Film Shelf shelves" })).toBeInTheDocument();
     expect(screen.getAllByTestId("film-shelf-skeleton-row")).toHaveLength(4);
     expect(screen.queryByText("Opening the Film Shelf...")).not.toBeInTheDocument();
   });
@@ -142,10 +141,13 @@ describe("FilmShelfPage", () => {
     });
 
     expect(screen.queryByRole("status", { name: "Loading Film Shelf shelves" })).not.toBeInTheDocument();
-    expect(screen.getByText("Missed Movie")).toBeInTheDocument();
+    expect(screen.getByText("Browse past drops, catch up on movies you missed, and revisit how the community scored each week.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByText("Missed Movie").length).toBeGreaterThan(0);
+    });
     expect(screen.getByText("Open for votes")).toBeInTheDocument();
     expect(screen.getByText("Top Rated Overall")).toBeInTheDocument();
-    expect(screen.getByText("Rated Movie")).toBeInTheDocument();
+    expect(screen.getAllByText("Rated Movie").length).toBeGreaterThan(0);
     expect(screen.getByText("Rated")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
   });

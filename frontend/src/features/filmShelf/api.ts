@@ -21,6 +21,7 @@ export interface ArchiveMovie {
   overview: string | null;
   poster_path: string | null;
   backdrop_path: string | null;
+  trailer_youtube_key?: string | null;
   director_name: string | null;
   genres: ArchiveGenre[];
   watch_providers: ArchiveWatchProvider[];

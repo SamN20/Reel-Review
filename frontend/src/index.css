@@ -35,6 +35,28 @@
     animation: film-shelf-content-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  @keyframes film-shelf-trailer-curtain {
+    0%,
+    62% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .film-shelf-trailer-curtain {
+    animation: film-shelf-trailer-curtain 1800ms ease-out forwards;
+    background-position: center;
+    background-size: cover;
+    pointer-events: none;
+  }
+
+  .film-shelf-trailer-frame {
+    height: max(100%, 56.25vw);
+    width: max(100%, 177.78vh);
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 8px;

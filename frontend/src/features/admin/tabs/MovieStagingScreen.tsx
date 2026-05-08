@@ -55,6 +55,7 @@ export function MovieStagingScreen({
         director_name: data.director_name,
         poster_path: selectedPoster,
         backdrop_path: selectedBackdrop,
+        trailer_youtube_key: data.trailer_youtube_key,
         genres: data.genres,
         cast: data.cast,
         keywords: data.keywords,

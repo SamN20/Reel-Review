@@ -16,7 +16,7 @@ from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
 from app.schemas.user import UserOut, UserUpdate
 from app.core.config import settings
-from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions
+from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions, extract_youtube_trailer_key
 from app.services.ratings_calculator import RatingsCalculator
 from app.services.nolofication import nolofication
 
@@ -148,7 +148,7 @@ async def get_tmdb_movie_details(tmdb_id: int):
     async with httpx.AsyncClient() as client:
         response = await client.get(
             f"{TMDB_BASE_URL}/movie/{tmdb_id}",
-            params={"append_to_response": "credits,keywords,watch/providers,images"},
+            params={"append_to_response": "credits,keywords,watch/providers,images,videos"},
             headers=get_tmdb_headers()
         )
         if response.status_code != 200:
@@ -168,6 +168,7 @@ async def get_tmdb_movie_details(tmdb_id: int):
             "cast": data.get("credits", {}).get("cast", [])[:10] if data.get("credits") else [],
             "keywords": data.get("keywords", {}).get("keywords", []) if data.get("keywords") else [],
             "watch_providers": watch_providers,
+            "trailer_youtube_key": extract_youtube_trailer_key(data.get("videos")),
             "images": data.get("images", {"posters": [], "backdrops": []})
         }
 
@@ -179,6 +180,7 @@ class MovieImportSchema(BaseModel):
     director_name: Optional[str] = None
     poster_path: Optional[str] = None
     backdrop_path: Optional[str] = None
+    trailer_youtube_key: Optional[str] = None
     genres: Optional[List[Dict[str, Any]]] = None
     cast: Optional[List[Dict[str, Any]]] = None
     keywords: Optional[List[Dict[str, Any]]] = None

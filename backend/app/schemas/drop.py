@@ -19,6 +19,7 @@ class MovieBase(BaseModel):
     overview: Optional[str] = None
     poster_path: Optional[str] = None
     backdrop_path: Optional[str] = None
+    trailer_youtube_key: Optional[str] = None
     director_name: Optional[str] = None
     genres: List[GenreOut] = []
     watch_providers: List[WatchProviderOut] = []

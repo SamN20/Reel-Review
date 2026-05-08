@@ -15,6 +15,7 @@ class Movie(Base):
     director_name = Column(String, nullable=True)
     poster_path = Column(String, nullable=True)
     backdrop_path = Column(String, nullable=True)
+    trailer_youtube_key = Column(String, nullable=True)
     
     genres = Column(JSON().with_variant(JSONB, 'postgresql'), nullable=True)
     cast = Column(JSON().with_variant(JSONB, 'postgresql'), nullable=True)

@@ -14,6 +14,7 @@ def _create_drop(db: Session, title: str, days_ago: int, scores: list[int]) -> W
         title=title,
         release_date=date(2024, 1, 1),
         backdrop_path=f"/{title.lower().replace(' ', '-')}.jpg",
+        trailer_youtube_key=f"{title.lower().replace(' ', '')}Trailer",
         genres=[{"name": "Drama"}],
     )
     db.add(movie)
@@ -63,6 +64,7 @@ def test_archive_shelves_are_public_without_personal_state(db: Session):
 
     top_shelf = next(shelf for shelf in data["shelves"] if shelf["id"] == "top-rated-overall")
     assert top_shelf["items"][0]["movie"]["title"] == "Crowd Favorite"
+    assert top_shelf["items"][0]["movie"]["trailer_youtube_key"] == "crowdfavoriteTrailer"
     assert top_shelf["items"][0]["community_score"] == 95.0
     assert top_shelf["items"][0]["user_score"] is None
     assert top_shelf["items"][0]["user_has_rated"] is False
