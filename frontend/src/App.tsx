@@ -13,6 +13,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Attribution from "./pages/Attribution";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { SectionPlaceholderPage } from "./components/SectionPlaceholderPage";
 import "./index.css";
 
 function App() {
@@ -31,6 +32,17 @@ function App() {
           <Route path="/leaderboards" element={<LeaderboardsPage />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
           <Route path="/admin" element={<Admin />} />
+          <Route
+            path="/profile"
+            element={
+              <SectionPlaceholderPage
+                activeSection="current-week"
+                eyebrow="Account"
+                title="Profile"
+                description="Profile settings are coming soon. For now, notification preferences live in Nolofication."
+              />
+            }
+          />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/attribution" element={<Attribution />} />

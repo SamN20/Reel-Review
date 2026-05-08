@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Home } from "lucide-react";
+import { Navigate, useNavigate } from "react-router-dom";
 
 import { DashboardTab } from "../features/admin/tabs/DashboardTab";
 import { MoviesTab } from "../features/admin/tabs/MoviesTab";
@@ -10,6 +11,7 @@ import { ModerationTab } from "../features/admin/tabs/ModerationTab";
 
 export default function Admin() {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -91,6 +93,16 @@ export default function Admin() {
             Moderation
           </button>
         </nav>
+        <div className="mt-auto pt-6">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="flex w-full items-center gap-3 rounded-lg border border-zinc-800 px-4 py-2 text-left text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+          >
+            <Home size={16} />
+            Back to Main Site
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -113,6 +125,14 @@ export default function Admin() {
             Menu
           </button>
         </div>
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="mb-6 inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white md:hidden"
+        >
+          <Home size={16} />
+          Back to Main Site
+        </button>
         {activeTab === "dashboard" && <DashboardTab />}
         {activeTab === "movies" && <MoviesTab />}
         {activeTab === "drops" && <DropsTab />}

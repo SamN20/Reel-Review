@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, Film, Menu, Search, User, X } from "lucide-react";
+import axios from "axios";
+import { Bell, Film, LayoutDashboard, LogOut, Menu, Search, UserCircle, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
@@ -17,11 +18,14 @@ const NAV_LINKS = [
   { id: "discussions", label: "Discussions", path: "/discussions" },
 ] as const;
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [navComingSoon, setNavComingSoon] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -43,6 +47,30 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
     setIsMenuOpen(false);
     navigate(path);
   };
+
+  const openNotificationPreferences = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get<{ url: string }>(
+        `${API_URL}/api/v1/auth/notification-preferences-url`,
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+      );
+      window.location.href = response.data.url;
+    } catch (error) {
+      console.error("Failed to open notification preferences", error);
+      setNavComingSoon("bell");
+      window.setTimeout(() => setNavComingSoon(null), 2000);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAccountOpen(false);
+    setIsMenuOpen(false);
+    logout();
+    navigate("/");
+  };
+
+  const accountInitial = user?.username?.charAt(0).toUpperCase() || "?";
 
   return (
     <>
@@ -82,19 +110,60 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
             </button>
             <button
               type="button"
-              onClick={() => handleNavClick("bell")}
-              className={`relative transition-colors ${navComingSoon === "bell" ? "text-red-500" : "hover:text-white hidden md:block"}`}
+              onClick={() => void openNotificationPreferences()}
+              className={`relative hidden transition-colors md:block ${navComingSoon === "bell" ? "text-red-500" : "hover:text-white"}`}
+              title="Notification settings"
             >
               <Bell size={20} strokeWidth={2.5} />
             </button>
-            <button
-              type="button"
-              onClick={logout}
-              title="Logout"
-              className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 items-center justify-center hover:border-zinc-500 transition-colors hidden md:flex"
-            >
-              <User size={16} />
-            </button>
+            <div className="relative hidden md:block">
+              <button
+                type="button"
+                onClick={() => setIsAccountOpen((open) => !open)}
+                title="Account menu"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-sm font-black text-white transition-colors hover:border-red-500 hover:bg-zinc-800"
+              >
+                {accountInitial}
+              </button>
+
+              {isAccountOpen ? (
+                <div className="absolute right-0 mt-3 w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40">
+                  <div className="border-b border-zinc-800 px-4 py-3">
+                    <p className="text-sm font-bold text-white">{user?.username || "Account"}</p>
+                    <p className="text-xs text-zinc-500">{user?.email || "Reel Review"}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAccountOpen(false);
+                      navigate("/profile");
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-white"
+                  >
+                    <UserCircle size={16} /> Profile
+                  </button>
+                  {user?.is_admin ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAccountOpen(false);
+                        navigate("/admin");
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-white"
+                    >
+                      <LayoutDashboard size={16} /> Admin Dashboard
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 border-t border-zinc-800 px-4 py-3 text-left text-sm text-red-300 transition-colors hover:bg-red-950/30 hover:text-red-200"
+                  >
+                    <LogOut size={16} /> Logout
+                  </button>
+                </div>
+              ) : null}
+            </div>
             
             {/* Mobile Menu Toggle */}
             <button
@@ -135,23 +204,38 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
             <button
               type="button"
               onClick={() => {
-                handleNavClick("bell");
                 setIsMenuOpen(false);
+                void openNotificationPreferences();
               }}
               className="flex items-center gap-3 text-zinc-300"
             >
               <Bell size={20} />
-              <span className="font-medium text-lg">Notifications</span>
+              <span className="font-medium text-lg">Notification Settings</span>
             </button>
             <button
               type="button"
-              onClick={() => {
-                logout();
-                setIsMenuOpen(false);
-              }}
+              onClick={() => closeMenuAndNavigate("/profile")}
               className="flex items-center gap-3 text-zinc-300"
             >
-              <User size={20} />
+              <UserCircle size={20} />
+              <span className="font-medium text-lg">Profile</span>
+            </button>
+            {user?.is_admin ? (
+              <button
+                type="button"
+                onClick={() => closeMenuAndNavigate("/admin")}
+                className="flex items-center gap-3 text-zinc-300"
+              >
+                <LayoutDashboard size={20} />
+                <span className="font-medium text-lg">Admin Dashboard</span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-3 text-zinc-300"
+            >
+              <LogOut size={20} />
               <span className="font-medium text-lg">Sign Out</span>
             </button>
           </div>

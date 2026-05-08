@@ -96,3 +96,10 @@ def get_current_user_info(current_user: User = Depends(deps.get_current_user)):
         "is_active": current_user.is_active,
         "is_admin": current_user.is_admin
     }
+
+@router.get("/notification-preferences-url")
+def get_notification_preferences_url(current_user: User = Depends(deps.get_current_user)):
+    """Get the Nolofication preferences URL for the configured site."""
+    return {
+        "url": f"{settings.NOLOFICATION_URL.rstrip('/')}/sites/{settings.NOLOFICATION_SITE_ID}/preferences"
+    }
