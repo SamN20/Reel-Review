@@ -57,7 +57,7 @@ export function FilmShelfDiscoverHero({ shelves }: FilmShelfDiscoverHeroProps) {
       setActiveIndex((index) => (index + 1) % items.length);
     }, showTrailer ? 14000 : 8500);
     return () => window.clearInterval(advanceDelay);
-  }, [items.length, showTrailer]);
+  }, [activeIndex, items.length, showTrailer]);
 
   if (!activeItem) {
     return null;
@@ -70,6 +70,10 @@ export function FilmShelfDiscoverHero({ shelves }: FilmShelfDiscoverHeroProps) {
 
   const moveSlide = (direction: 1 | -1) => {
     setActiveIndex((index) => (index + direction + items.length) % items.length);
+  };
+
+  const selectSlide = (index: number) => {
+    setActiveIndex(index);
   };
 
   const openFullTrailer = () => {
@@ -208,7 +212,7 @@ export function FilmShelfDiscoverHero({ shelves }: FilmShelfDiscoverHeroProps) {
             <button
               key={item.drop_id}
               type="button"
-              onClick={() => setActiveIndex(index)}
+              onClick={() => selectSlide(index)}
               className={`h-2 rounded-full transition-all ${
                 index === activeIndex ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
               }`}

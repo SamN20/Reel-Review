@@ -145,9 +145,13 @@ describe("FilmShelfPage", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Missed Movie").length).toBeGreaterThan(0);
     });
-    expect(screen.getByText("Open for votes")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Open for votes")).toBeInTheDocument();
+    });
     expect(screen.getByText("Top Rated Overall")).toBeInTheDocument();
-    expect(screen.getAllByText("Rated Movie").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText("Rated Movie").length).toBeGreaterThan(0);
+    });
     expect(screen.getByText("Rated")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
   });
