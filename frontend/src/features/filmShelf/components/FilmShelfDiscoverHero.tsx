@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Play, Star, Volume2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import type { ArchiveMovieItem, ArchiveShelf } from "../api";
@@ -70,6 +70,11 @@ export function FilmShelfDiscoverHero({ shelves }: FilmShelfDiscoverHeroProps) {
 
   const moveSlide = (direction: 1 | -1) => {
     setActiveIndex((index) => (index + direction + items.length) % items.length);
+  };
+
+  const openFullTrailer = () => {
+    if (!trailerKey) return;
+    window.open(`https://www.youtube.com/watch?v=${trailerKey}`, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -185,6 +190,17 @@ export function FilmShelfDiscoverHero({ shelves }: FilmShelfDiscoverHeroProps) {
           </div>
         </div>
       </div>
+
+      {trailerKey ? (
+        <button
+          type="button"
+          onClick={openFullTrailer}
+          className="absolute bottom-7 right-4 z-20 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-zinc-950/55 px-3.5 py-2 text-xs font-black text-white shadow-xl shadow-zinc-950/30 backdrop-blur transition-colors hover:border-red-500/70 hover:bg-red-600 md:right-8"
+        >
+          <Volume2 size={15} />
+          Watch Full Trailer
+        </button>
+      ) : null}
 
       {items.length > 1 ? (
         <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
