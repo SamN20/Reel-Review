@@ -7,6 +7,7 @@ import { CommunityDiscussions } from "../components/CommunityDiscussions";
 import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
 import { LoadingScreen } from "../components/LoadingScreen";
+import { LoginScreen } from "../components/LoginScreen";
 
 interface CurrentDrop {
   id: number;
@@ -131,20 +132,7 @@ export default function Home() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-4">
-        <h1 className="text-4xl font-bold mb-8">Reel Review</h1>
-        <div className="text-center">
-          <p className="mb-4 text-zinc-400">Join the weekly drop.</p>
-          <button
-            onClick={login}
-            className="px-6 py-3 bg-red-600 font-bold rounded hover:bg-red-700 transition-colors"
-          >
-            Login with KeyN
-          </button>
-        </div>
-      </div>
-    );
+    return <LoginScreen pastDrops={pastDrops} onLogin={login} />;
   }
 
   return (
