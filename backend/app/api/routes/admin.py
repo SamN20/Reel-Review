@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Dict, Any, Optional
 from datetime import date, datetime, timezone
+from statistics import median, pstdev
 import httpx
 from pydantic import BaseModel
 
@@ -205,7 +206,129 @@ def import_movie(movie_data: MovieImportSchema, db: Session = Depends(deps.get_d
 def get_imported_movies(db: Session = Depends(deps.get_db)):
     # Returns all imported movies, needed for the manage tab
     movies = db.query(Movie).order_by(Movie.id.desc()).all()
-    return [{"id": m.id, "title": m.title, "tmdb_id": m.tmdb_id, "release_date": m.release_date, "in_pool": m.in_pool, "poster_path": m.poster_path} for m in movies]
+    result = []
+    for movie in movies:
+        ratings = (
+            db.query(Rating.overall_score)
+            .filter(
+                Rating.movie_id == movie.id,
+                Rating.is_approved == True,
+                Rating.is_hidden == False,
+            )
+            .all()
+        )
+        scores = [score for (score,) in ratings]
+        result.append(
+            {
+                "id": movie.id,
+                "title": movie.title,
+                "tmdb_id": movie.tmdb_id,
+                "release_date": movie.release_date,
+                "created_at": movie.created_at,
+                "in_pool": movie.in_pool,
+                "poster_path": movie.poster_path,
+                "genres": movie.genres or [],
+                "average_score": round(sum(scores) / len(scores), 1) if scores else None,
+                "total_ratings": len(scores),
+            }
+        )
+    return result
+
+@router.get("/movies/{movie_id}/analytics")
+def get_movie_analytics(movie_id: int, db: Session = Depends(deps.get_db)):
+    movie = db.query(Movie).filter(Movie.id == movie_id).first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    ratings = (
+        db.query(Rating)
+        .filter(
+            Rating.movie_id == movie_id,
+            Rating.is_approved == True,
+            Rating.is_hidden == False,
+        )
+        .order_by(Rating.created_at.desc(), Rating.id.desc())
+        .all()
+    )
+    scores = [rating.overall_score for rating in ratings]
+
+    categories = [
+        ("story", "Story & Pacing", "story_score"),
+        ("performances", "Performances", "performances_score"),
+        ("visuals", "Visuals & Cinematography", "visuals_score"),
+        ("sound", "Sound & Score", "sound_score"),
+        ("rewatchability", "Rewatchability", "rewatchability_score"),
+        ("enjoyment", "Pure Enjoyment", "enjoyment_score"),
+        ("emotional_impact", "Emotional Impact", "emotional_impact_score"),
+    ]
+
+    subcategory_averages = []
+    for key, label, attr in categories:
+        values = [getattr(rating, attr) for rating in ratings if getattr(rating, attr) is not None]
+        subcategory_averages.append(
+            {
+                "key": key,
+                "subject": label,
+                "count": len(values),
+                "average_score": round(sum(values) / len(values), 1) if values else None,
+            }
+        )
+
+    rating_rows = []
+    for rating in ratings:
+        drop = rating.weekly_drop
+        rating_rows.append(
+            {
+                "id": rating.id,
+                "user_id": rating.user_id,
+                "username": rating.user.username if rating.user else "Unknown",
+                "is_anonymous": rating.is_anonymous,
+                "overall_score": rating.overall_score,
+                "review_text": rating.review_text,
+                "has_spoilers": rating.has_spoilers,
+                "is_late": rating.is_late,
+                "weekly_drop_id": rating.weekly_drop_id,
+                "weekly_drop_start_date": drop.start_date if drop else None,
+                "weekly_drop_end_date": drop.end_date if drop else None,
+                "created_at": rating.created_at,
+                "subcategories": {
+                    "story": rating.story_score,
+                    "performances": rating.performances_score,
+                    "visuals": rating.visuals_score,
+                    "sound": rating.sound_score,
+                    "rewatchability": rating.rewatchability_score,
+                    "enjoyment": rating.enjoyment_score,
+                    "emotional_impact": rating.emotional_impact_score,
+                },
+            }
+        )
+
+    return {
+        "movie": {
+            "id": movie.id,
+            "title": movie.title,
+            "tmdb_id": movie.tmdb_id,
+            "release_date": movie.release_date,
+            "overview": movie.overview,
+            "director_name": movie.director_name,
+            "poster_path": movie.poster_path,
+            "backdrop_path": movie.backdrop_path,
+            "genres": movie.genres or [],
+        },
+        "stats": {
+            "total_ratings": len(ratings),
+            "average_score": round(sum(scores) / len(scores), 1) if scores else None,
+            "highest_score": max(scores) if scores else None,
+            "lowest_score": min(scores) if scores else None,
+            "median_score": round(float(median(scores)), 1) if scores else None,
+            "score_spread": round(float(pstdev(scores)), 2) if len(scores) > 1 else 0.0,
+            "spoiler_review_count": sum(1 for rating in ratings if rating.has_spoilers and rating.review_text),
+            "text_review_count": sum(1 for rating in ratings if rating.review_text),
+        },
+        "score_distribution": RatingsCalculator.get_score_distribution(scores),
+        "subcategories": subcategory_averages,
+        "ratings": rating_rows,
+    }
 
 class PoolToggleSchema(BaseModel):
     in_pool: bool

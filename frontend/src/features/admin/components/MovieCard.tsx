@@ -5,11 +5,14 @@ interface MovieCardProps {
     id: number;
     title: string;
     release_date?: string;
+    average_score?: number | null;
+    total_ratings?: number;
     poster_path?: string;
     in_pool?: boolean;
   };
   onDelete?: (id: number, title: string) => void;
   onTogglePool?: (id: number, inPool: boolean) => void;
+  onSelect?: (movie: MovieCardProps["movie"]) => void;
   draggable?: boolean;
   compact?: boolean;
 }
@@ -17,6 +20,7 @@ interface MovieCardProps {
 export function MovieCard({
   movie,
   onDelete,
+  onSelect,
   draggable = true,
   compact = false,
 }: MovieCardProps) {
@@ -29,7 +33,8 @@ export function MovieCard({
     <div
       draggable={draggable}
       onDragStart={handleDragStart}
-      className={`bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 group transition-all hover:border-zinc-600 ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${compact ? "flex items-center gap-3 p-2" : ""}`}
+      onClick={() => onSelect?.(movie)}
+      className={`bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 group transition-all hover:border-zinc-600 ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${onSelect ? "cursor-pointer" : ""} ${compact ? "flex items-center gap-3 p-2" : ""}`}
     >
       {compact ? (
         <>
@@ -52,9 +57,14 @@ export function MovieCard({
             <p className="text-xs text-zinc-500">
               {movie.release_date?.substring(0, 4)}
             </p>
+            <div className="mt-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+              <span>{movie.average_score ?? "--"} AVG</span>
+              <span>{movie.total_ratings ?? 0} ratings</span>
+            </div>
           </div>
           {onDelete && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(movie.id, movie.title);
@@ -87,6 +97,10 @@ export function MovieCard({
             <p className="text-xs text-zinc-400">
               {movie.release_date?.substring(0, 4)}
             </p>
+            <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              <span>{movie.average_score ?? "--"} AVG</span>
+              <span>{movie.total_ratings ?? 0} ratings</span>
+            </div>
           </div>
         </>
       )}

@@ -79,13 +79,18 @@ class RatingsCalculator:
     def get_sentiment_distribution(db: Session, drop_id: int) -> List[Dict[str, Any]]:
         """Get distribution of overall scores in buckets of 10."""
         ratings = db.query(Rating.overall_score).filter(Rating.weekly_drop_id == drop_id, Rating.is_approved == True).all()
+        return RatingsCalculator.get_score_distribution([score for (score,) in ratings])
+
+    @staticmethod
+    def get_score_distribution(scores: List[int]) -> List[Dict[str, Any]]:
+        """Get distribution of overall scores in buckets of 10."""
         buckets = {f"{i}": 0 for i in range(0, 101, 10)}
-        
-        for (score,) in ratings:
+
+        for score in scores:
             bucket = f"{int(math.floor(score / 10) * 10)}"
             if bucket in buckets:
                 buckets[bucket] += 1
-                
+
         return [{"score": int(k), "count": v} for k, v in buckets.items()]
 
     @staticmethod

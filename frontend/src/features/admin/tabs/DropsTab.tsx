@@ -473,7 +473,7 @@ export function DropsTab() {
                     type="date"
                     value={selectedWeekStart || ""}
                     onChange={(e) => setSelectedWeekStart(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+                    className="admin-filter-control admin-filter-date bg-zinc-950 px-4 py-3"
                     required
                   />
                 </div>

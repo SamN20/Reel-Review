@@ -8,6 +8,7 @@ interface KanbanColumnProps {
   movies: any[];
   onDrop: (movie: any) => void;
   onDeleteMovie?: (id: number, title: string) => void;
+  onSelectMovie?: (movie: any) => void;
   emptyMessage: string;
   compact?: boolean;
 }
@@ -25,6 +26,7 @@ export function KanbanColumn({
   movies,
   onDrop,
   onDeleteMovie,
+  onSelectMovie,
   emptyMessage,
   compact = false,
 }: KanbanColumnProps) {
@@ -106,6 +108,7 @@ export function KanbanColumn({
               key={movie.id}
               movie={movie}
               onDelete={onDeleteMovie}
+              onSelect={onSelectMovie}
               compact
             />
           ))
@@ -116,6 +119,7 @@ export function KanbanColumn({
                 key={movie.id}
                 movie={movie}
                 onDelete={onDeleteMovie}
+                onSelect={onSelectMovie}
               />
             ))}
           </div>

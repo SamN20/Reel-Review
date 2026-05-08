@@ -118,7 +118,7 @@ export function EngagementChart({ data }: { data: EngagementPoint[] }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto overflow-y-hidden pb-2">
+      <div className="custom-scrollbar overflow-x-auto overflow-y-hidden pb-2">
         <div style={{ minWidth: `${chartWidth}px` }} className="h-72 w-full min-w-0 overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={visibleData} margin={{ top: 8, right: 24, bottom: 8, left: 8 }}>
