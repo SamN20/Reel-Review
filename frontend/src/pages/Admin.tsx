@@ -8,6 +8,7 @@ import { MoviesTab } from "../features/admin/tabs/MoviesTab";
 import { DropsTab } from "../features/admin/tabs/DropsTab";
 import { UsersTab } from "../features/admin/tabs/UsersTab";
 import { ModerationTab } from "../features/admin/tabs/ModerationTab";
+import { MovieRequestsTab } from "../features/admin/tabs/MovieRequestsTab";
 
 export default function Admin() {
   const { user, loading } = useAuth();
@@ -81,6 +82,12 @@ export default function Admin() {
             Weekly Drops
           </button>
           <button
+            onClick={() => handleTabChange("requests")}
+            className={`text-left px-4 py-2 rounded-lg transition-colors ${activeTab === "requests" ? "bg-red-600 text-white" : "text-zinc-400 hover:bg-zinc-800"}`}
+          >
+            Movie Requests
+          </button>
+          <button
             onClick={() => handleTabChange("users")}
             className={`text-left px-4 py-2 rounded-lg transition-colors ${activeTab === "users" ? "bg-red-600 text-white" : "text-zinc-400 hover:bg-zinc-800"}`}
           >
@@ -136,6 +143,7 @@ export default function Admin() {
         {activeTab === "dashboard" && <DashboardTab />}
         {activeTab === "movies" && <MoviesTab />}
         {activeTab === "drops" && <DropsTab />}
+        {activeTab === "requests" && <MovieRequestsTab />}
         {activeTab === "users" && <UsersTab />}
         {activeTab === "moderation" && <ModerationTab />}
       </div>

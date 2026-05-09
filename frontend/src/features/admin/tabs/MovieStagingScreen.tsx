@@ -4,14 +4,63 @@ import { useDraggableScroll } from "../../../hooks/useDraggableScroll";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+type TmdbGenre = {
+  id?: number;
+  name: string;
+};
+
+type TmdbPerson = {
+  id: number;
+  name: string;
+  character?: string;
+};
+
+type TmdbImage = {
+  file_path: string;
+};
+
+type TmdbMovieDetails = {
+  tmdb_id: number;
+  title: string;
+  release_date?: string | null;
+  overview?: string | null;
+  director_name?: string | null;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  trailer_youtube_key?: string | null;
+  genres: TmdbGenre[];
+  cast: TmdbPerson[];
+  keywords?: { id?: number; name: string }[];
+  watch_providers?: Record<string, unknown>;
+  images: {
+    posters: TmdbImage[];
+    backdrops: TmdbImage[];
+  };
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as { response?: { data?: { detail?: unknown } } }).response?.data?.detail === "string"
+  ) {
+    return (error as { response: { data: { detail: string } } }).response.data.detail;
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 export function MovieStagingScreen({
   tmdbId,
+  requestId,
   onBack,
 }: {
   tmdbId: number;
+  requestId?: number | null;
   onBack: () => void;
 }) {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<TmdbMovieDetails | null>(null);
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [selectedBackdrop, setSelectedBackdrop] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -61,13 +110,16 @@ export function MovieStagingScreen({
         keywords: data.keywords,
         watch_providers: data.watch_providers,
       };
-      await axios.post(`${API_URL}/api/v1/admin/movies`, payload, {
+      const url = requestId
+        ? `${API_URL}/api/v1/admin/movie-requests/${requestId}/approve`
+        : `${API_URL}/api/v1/admin/movies`;
+      await axios.post(url, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert("Movie successfully imported!");
+      alert(requestId ? "Request approved and movie imported!" : "Movie successfully imported!");
       onBack();
-    } catch (err: any) {
-      alert(`Error importing: ${err.response?.data?.detail || err.message}`);
+    } catch (err: unknown) {
+      alert(`Error importing: ${getErrorMessage(err, "Unknown error")}`);
     } finally {
       setImporting(false);
     }
@@ -89,7 +141,7 @@ export function MovieStagingScreen({
           <h2 className="text-3xl sm:text-4xl font-bold mb-2">{data.title}</h2>
           <p className="text-zinc-400">
             {data.release_date} •{" "}
-            {data.genres.map((g: any) => g.name).join(", ")}
+              {data.genres.map((g) => g.name).join(", ")}
           </p>
         </div>
         <button
@@ -97,7 +149,7 @@ export function MovieStagingScreen({
           disabled={importing}
           className="w-full md:w-auto bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
         >
-          {importing ? "Importing..." : "Save & Import Movie"}
+          {importing ? "Importing..." : requestId ? "Approve & Import Movie" : "Save & Import Movie"}
         </button>
       </div>
 
@@ -115,7 +167,7 @@ export function MovieStagingScreen({
               Top Cast
             </h3>
             <div className="flex flex-wrap gap-2">
-              {data.cast.map((c: any) => (
+              {data.cast.map((c) => (
                 <span
                   key={c.id}
                   className="bg-zinc-800 text-zinc-300 px-3 py-1 rounded-full text-sm"
@@ -137,7 +189,7 @@ export function MovieStagingScreen({
             {...posterScroll}
             className="flex overflow-x-auto gap-4 py-4 sm:py-6 px-2 -mx-2 hide-scrollbar cursor-grab active:cursor-grabbing"
           >
-            {data.images.posters.map((p: any) => (
+            {data.images.posters.map((p) => (
               <img
                 key={p.file_path}
                 src={`https://image.tmdb.org/t/p/w500${p.file_path}`}
@@ -156,7 +208,7 @@ export function MovieStagingScreen({
             {...backdropScroll}
             className="flex overflow-x-auto gap-4 py-4 sm:py-6 px-2 -mx-2 hide-scrollbar cursor-grab active:cursor-grabbing"
           >
-            {data.images.backdrops.map((b: any) => (
+            {data.images.backdrops.map((b) => (
               <img
                 key={b.file_path}
                 src={`https://image.tmdb.org/t/p/w780${b.file_path}`}

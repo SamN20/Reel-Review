@@ -4,6 +4,7 @@ import { Bell, Film, LayoutDashboard, LogOut, Menu, Search, UserCircle, X } from
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
+import { SearchOverlay } from "./SearchOverlay";
 
 type SiteHeaderSection = "current-week" | "film-shelf" | "leaderboards" | "discussions" | null;
 
@@ -26,6 +27,7 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
   const [navComingSoon, setNavComingSoon] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -37,11 +39,6 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
       document.body.style.overflow = "unset";
     };
   }, [isMenuOpen]);
-
-  const handleNavClick = (feature: string) => {
-    setNavComingSoon(feature);
-    window.setTimeout(() => setNavComingSoon(null), 2000);
-  };
 
   const closeMenuAndNavigate = (path: string) => {
     setIsMenuOpen(false);
@@ -103,8 +100,9 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
           <div className="flex items-center gap-3 md:gap-5 text-zinc-300">
             <button
               type="button"
-              onClick={() => handleNavClick("search")}
-              className={`transition-colors ${navComingSoon === "search" ? "text-red-500" : "hover:text-white"}`}
+              onClick={() => setIsSearchOpen(true)}
+              className="transition-colors hover:text-white"
+              title="Search"
             >
               <Search size={20} strokeWidth={2.5} />
             </button>
@@ -141,6 +139,16 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
                     className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-white"
                   >
                     <UserCircle size={16} /> Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAccountOpen(false);
+                      navigate("/requests");
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-white"
+                  >
+                    <Film size={16} /> Movie Requests
                   </button>
                   {user?.is_admin ? (
                     <button
@@ -205,6 +213,17 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
               type="button"
               onClick={() => {
                 setIsMenuOpen(false);
+                setIsSearchOpen(true);
+              }}
+              className="flex items-center gap-3 text-zinc-300"
+            >
+              <Search size={20} />
+              <span className="font-medium text-lg">Search</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsMenuOpen(false);
                 void openNotificationPreferences();
               }}
               className="flex items-center gap-3 text-zinc-300"
@@ -219,6 +238,14 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
             >
               <UserCircle size={20} />
               <span className="font-medium text-lg">Profile</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => closeMenuAndNavigate("/requests")}
+              className="flex items-center gap-3 text-zinc-300"
+            >
+              <Film size={20} />
+              <span className="font-medium text-lg">Movie Requests</span>
             </button>
             {user?.is_admin ? (
               <button
@@ -241,6 +268,7 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
           </div>
         </div>
       </div>
+      {isSearchOpen ? <SearchOverlay onClose={() => setIsSearchOpen(false)} /> : null}
     </>
   );
 }

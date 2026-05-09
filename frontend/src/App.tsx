@@ -8,6 +8,7 @@ import FilmShelfPage from "./pages/FilmShelfPage";
 import VoteOrderPage from "./features/filmShelf/pages/VoteOrderPage";
 import LeaderboardsPage from "./pages/LeaderboardsPage";
 import DiscussionsPage from "./pages/DiscussionsPage";
+import RequestsPage from "./pages/RequestsPage";
 import Results from "./features/results/pages/ResultsPage";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -31,6 +32,7 @@ function App() {
           <Route path="/film-shelf/vote-order" element={<VoteOrderPage />} />
           <Route path="/leaderboards" element={<LeaderboardsPage />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
+          <Route path="/requests" element={<RequestsPage />} />
           <Route path="/admin" element={<Admin />} />
           <Route
             path="/profile"

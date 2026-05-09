@@ -14,6 +14,7 @@ from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
 from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
+from app.models.movie_request import MovieRequest
 from app.schemas.user import UserOut, UserUpdate
 from app.core.config import settings
 from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions, extract_youtube_trailer_key
@@ -186,8 +187,10 @@ class MovieImportSchema(BaseModel):
     keywords: Optional[List[Dict[str, Any]]] = None
     watch_providers: Optional[Dict[str, Any]] = None
 
-@router.post("/movies")
-def import_movie(movie_data: MovieImportSchema, db: Session = Depends(deps.get_db)):
+class MovieRequestRejectSchema(BaseModel):
+    reason: Optional[str] = None
+
+def create_movie_from_import_payload(movie_data: MovieImportSchema, db: Session) -> Movie:
     existing = db.query(Movie).filter(Movie.tmdb_id == movie_data.tmdb_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Movie already imported")
@@ -200,9 +203,97 @@ def import_movie(movie_data: MovieImportSchema, db: Session = Depends(deps.get_d
 
     db_movie = Movie(**payload)
     db.add(db_movie)
+    db.flush()
+    return db_movie
+
+@router.post("/movies")
+def import_movie(movie_data: MovieImportSchema, db: Session = Depends(deps.get_db)):
+    db_movie = create_movie_from_import_payload(movie_data, db)
     db.commit()
     db.refresh(db_movie)
     return db_movie
+
+def serialize_admin_movie_request(request: MovieRequest) -> dict[str, Any]:
+    return {
+        "id": request.id,
+        "tmdb_id": request.tmdb_id,
+        "status": request.status,
+        "movie_id": request.movie_id,
+        "title": request.title,
+        "release_date": request.release_date,
+        "overview": request.overview,
+        "poster_path": request.poster_path,
+        "backdrop_path": request.backdrop_path,
+        "genres": request.genres or [],
+        "admin_reason": request.admin_reason,
+        "supporter_count": len(request.supporters),
+        "created_at": request.created_at,
+        "updated_at": request.updated_at,
+        "supporters": [
+            {
+                "id": supporter.id,
+                "user_id": supporter.user_id,
+                "username": supporter.user.username if supporter.user else "Unknown",
+                "note": supporter.note,
+                "created_at": supporter.created_at,
+            }
+            for supporter in request.supporters
+        ],
+    }
+
+@router.get("/movie-requests")
+def get_movie_requests(status: Optional[str] = None, db: Session = Depends(deps.get_db)):
+    query = db.query(MovieRequest).order_by(MovieRequest.created_at.desc(), MovieRequest.id.desc())
+    if status and status != "all":
+        query = query.filter(MovieRequest.status == status)
+    return [serialize_admin_movie_request(request) for request in query.all()]
+
+@router.post("/movie-requests/{request_id}/approve")
+def approve_movie_request(
+    request_id: int,
+    movie_data: MovieImportSchema,
+    db: Session = Depends(deps.get_db),
+):
+    request = db.query(MovieRequest).filter(MovieRequest.id == request_id).first()
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if request.status != "pending":
+        raise HTTPException(status_code=400, detail="Request has already been reviewed")
+    if request.tmdb_id != movie_data.tmdb_id:
+        raise HTTPException(status_code=400, detail="Imported movie does not match request")
+
+    existing_movie = db.query(Movie).filter(Movie.tmdb_id == movie_data.tmdb_id).first()
+    if existing_movie:
+        db_movie = existing_movie
+    else:
+        db_movie = create_movie_from_import_payload(movie_data, db)
+
+    request.status = "approved"
+    request.movie_id = db_movie.id
+    request.admin_reason = None
+    request.poster_path = db_movie.poster_path
+    request.backdrop_path = db_movie.backdrop_path
+    request.genres = db_movie.genres
+    db.commit()
+    db.refresh(request)
+    return serialize_admin_movie_request(request)
+
+@router.post("/movie-requests/{request_id}/reject")
+def reject_movie_request(
+    request_id: int,
+    payload: MovieRequestRejectSchema,
+    db: Session = Depends(deps.get_db),
+):
+    request = db.query(MovieRequest).filter(MovieRequest.id == request_id).first()
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if request.status != "pending":
+        raise HTTPException(status_code=400, detail="Request has already been reviewed")
+    request.status = "rejected"
+    request.admin_reason = payload.reason
+    db.commit()
+    db.refresh(request)
+    return serialize_admin_movie_request(request)
 
 @router.get("/movies")
 def get_imported_movies(db: Session = Depends(deps.get_db)):
