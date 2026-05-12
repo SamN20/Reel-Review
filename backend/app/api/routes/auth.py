@@ -21,7 +21,7 @@ def get_login_url():
     params = {
         "client_id": settings.KEYN_CLIENT_ID,
         "redirect_uri": settings.KEYN_REDIRECT_URI,
-        "scope": "id,username,email",
+        "scope": "id,username,email,display_name",
         "state": "random_state", # In a real app, generate and verify state
     }
     url = f"{settings.KEYN_BASE_URL}/oauth/authorize?{urlencode(params)}"
@@ -64,6 +64,7 @@ async def auth_callback(request: CallbackRequest, db: Session = Depends(deps.get
     keyn_id = str(user_data.get("id"))
     username = user_data.get("username")
     email = user_data.get("email")
+    display_name = user_data.get("display_name")
     
     if not keyn_id or not username:
         raise HTTPException(status_code=400, detail="Incomplete user data received")
@@ -71,15 +72,21 @@ async def auth_callback(request: CallbackRequest, db: Session = Depends(deps.get
     # 3. Create or update user in our database
     user = db.query(User).filter(User.keyn_id == keyn_id).first()
     if not user:
-        user = User(keyn_id=keyn_id, username=username, email=email)
+        user = User(
+            keyn_id=keyn_id, 
+            username=username, 
+            email=email,
+            display_name=display_name
+        )
         db.add(user)
         db.commit()
         db.refresh(user)
     else:
-        # Update username/email if changed
-        if user.username != username or user.email != email:
+        # Update username/email/display_name if changed
+        if user.username != username or user.email != email or user.display_name != display_name:
             user.username = username
             user.email = email
+            user.display_name = display_name
             db.commit()
             
     # 4. Issue local JWT
@@ -93,6 +100,10 @@ def get_current_user_info(current_user: User = Depends(deps.get_current_user)):
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
+        "display_name": current_user.display_name,
+        "use_display_name": current_user.use_display_name if current_user.use_display_name is not None else True,
+        "show_on_leaderboard": current_user.show_on_leaderboard if current_user.show_on_leaderboard is not None else True,
+        "public_profile": current_user.public_profile if current_user.public_profile is not None else False,
         "is_active": current_user.is_active,
         "is_admin": current_user.is_admin
     }

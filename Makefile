@@ -41,10 +41,10 @@ db-unseed:
 	fi
 
 test-frontend:
-	docker compose exec frontend npm run test
+	docker compose run --rm --no-deps --build frontend npm run test -- --run
 
 test-backend:
-	docker compose exec backend pytest
+	docker compose run --rm --no-deps --build backend poetry run pytest
 
 setup:
 	cp .env.example .env

@@ -12,6 +12,10 @@ interface User {
   id: number;
   username: string;
   email: string | null;
+  display_name: string | null;
+  use_display_name: boolean;
+  show_on_leaderboard: boolean;
+  public_profile: boolean;
   is_active: boolean;
   is_admin: boolean;
 }
@@ -22,6 +26,7 @@ interface AuthContextType {
   login: () => void;
   logout: () => void;
   handleCallback: (code: string) => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -97,9 +102,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : null));
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, logout, handleCallback }}
+      value={{ user, loading, login, logout, handleCallback, updateUser }}
     >
       {children}
     </AuthContext.Provider>

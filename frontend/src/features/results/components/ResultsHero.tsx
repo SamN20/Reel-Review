@@ -30,10 +30,10 @@ export function ResultsHero({ movie, totalVotes, officialScore, userScore }: Res
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 w-full mt-auto">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors font-semibold text-sm mb-8 w-fit"
         >
-          <ArrowLeft size={16} /> Back to Archive
+          <ArrowLeft size={16} /> Go Back
         </button>
 
         <div className="flex flex-col gap-12">

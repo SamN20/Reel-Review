@@ -10,6 +10,12 @@ class User(Base):
     keyn_id = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=True)
+    display_name = Column(String, nullable=True)
+    
+    # Privacy & Preferences
+    use_display_name = Column(Boolean, default=True)
+    show_on_leaderboard = Column(Boolean, default=True)
+    public_profile = Column(Boolean, default=False)
     
     # Preferences and stats could be added later
     is_admin = Column(Boolean, default=False)
