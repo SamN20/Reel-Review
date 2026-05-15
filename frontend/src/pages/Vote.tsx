@@ -19,6 +19,8 @@ import { ScoreBar } from "../components/ScoreBar";
 import { MovieMetaDetails } from "../components/MovieMetaDetails";
 import { RankedMoviePicker } from "../features/dropSelection/components/RankedMoviePicker";
 import { VoteSuccessOverlay } from "../features/dropSelection/components/VoteSuccessOverlay";
+import { VoteOnboardingOverlay } from "../features/dropSelection/components/VoteOnboardingOverlay";
+import { hasCompletedOnboarding, markOnboardingComplete, ONBOARDING_KEY_VOTE } from "../features/dropSelection/onboarding";
 import type { NextVote } from "../features/dropSelection/types";
 import type { MovieSummary } from "../features/results/api";
 
@@ -60,8 +62,31 @@ export default function Vote() {
   const [isLocked, setIsLocked] = useState(false);
   const [nextVote, setNextVote] = useState<NextVote | null>(null);
   const [showVoteSuccess, setShowVoteSuccess] = useState(false);
+  const [showVoteOnboarding, setShowVoteOnboarding] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
+
+  // Fetch the admin onboarding flag and decide whether to show the intro.
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const token = localStorage.getItem("token");
+    axios
+      .get<{ always_play: boolean }>(`${API_URL}/api/v1/admin/settings/onboarding`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        if (res.data.always_play || !hasCompletedOnboarding(ONBOARDING_KEY_VOTE)) {
+          setShowVoteOnboarding(true);
+        }
+      })
+      .catch(() => {
+        // If the request fails (e.g. network), silently fall back to localStorage check.
+        if (!hasCompletedOnboarding(ONBOARDING_KEY_VOTE)) {
+          setShowVoteOnboarding(true);
+        }
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -477,6 +502,15 @@ export default function Vote() {
                   : null
               }
               onDone={() => navigate("/")}
+            />
+          )}
+
+          {showVoteOnboarding && (
+            <VoteOnboardingOverlay
+              onDismiss={() => {
+                markOnboardingComplete(ONBOARDING_KEY_VOTE);
+                setShowVoteOnboarding(false);
+              }}
             />
           )}
 

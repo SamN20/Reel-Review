@@ -17,9 +17,16 @@ from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
 from app.models.movie_request import MovieRequest
 from app.schemas.user import UserOut, UserUpdate
-from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings
+from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings, OnboardingSettings
 from app.core.config import settings
-from app.services.admin_settings import DEFAULT_DROP_SELECTION_SETTINGS, DEFAULT_LEADERBOARD_SETTINGS, get_or_create_setting, update_setting
+from app.services.admin_settings import (
+    DEFAULT_DROP_SELECTION_SETTINGS,
+    DEFAULT_LEADERBOARD_SETTINGS,
+    DEFAULT_ONBOARDING_SETTINGS,
+    ONBOARDING_SETTINGS_KEY,
+    get_or_create_setting,
+    update_setting,
+)
 from app.services.drop_scheduler import DropSchedulerService
 from app.services.drop_selection import DROP_SELECTION_SETTINGS_KEY, DropSelectionService, normalize_drop_selection_settings
 from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions, extract_youtube_trailer_key
@@ -169,6 +176,25 @@ def update_drop_selection_settings(payload: DropSelectionSettings, db: Session =
         },
     )
     return serialize_drop_selection_settings(setting.value)
+
+
+# ── Onboarding settings ────────────────────────────────────────────────────────
+# GET is readable by any authenticated user (so Vote.tsx can check always_play).
+# PUT is restricted to admins via the main `router`.
+
+public_router = APIRouter(dependencies=[Depends(deps.get_current_user)])
+
+
+@public_router.get("/settings/onboarding", response_model=OnboardingSettings)
+def get_onboarding_settings_public(db: Session = Depends(deps.get_db)):
+    setting = get_or_create_setting(db, ONBOARDING_SETTINGS_KEY, DEFAULT_ONBOARDING_SETTINGS)
+    return OnboardingSettings(always_play=bool(setting.value.get("always_play", False)))
+
+
+@router.put("/settings/onboarding", response_model=OnboardingSettings)
+def update_onboarding_settings(payload: OnboardingSettings, db: Session = Depends(deps.get_db)):
+    setting = update_setting(db, ONBOARDING_SETTINGS_KEY, {"always_play": payload.always_play})
+    return OnboardingSettings(always_play=bool(setting.value.get("always_play", False)))
 
 @router.post("/reminders/weekend")
 async def send_weekend_reminder(db: Session = Depends(deps.get_db)):

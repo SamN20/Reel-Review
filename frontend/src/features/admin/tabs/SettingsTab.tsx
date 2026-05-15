@@ -16,6 +16,10 @@ type DropSelectionSettings = {
   user_vote_wildcard_options: number;
 };
 
+type OnboardingSettings = {
+  always_play: boolean;
+};
+
 type NumberFieldProps = {
   label: string;
   value: number;
@@ -38,6 +42,37 @@ function NumberField({ label, value, min = 0, onChange }: NumberFieldProps) {
   );
 }
 
+type ToggleFieldProps = {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+};
+
+function ToggleField({ label, description, checked, onChange }: ToggleFieldProps) {
+  return (
+    <div className="flex items-start justify-between gap-6">
+      <div>
+        <p className="text-sm font-semibold text-zinc-200">{label}</p>
+        <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative mt-0.5 flex-shrink-0 h-6 w-11 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500
+          ${checked ? "bg-red-600" : "bg-zinc-700"}`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200
+            ${checked ? "translate-x-5" : "translate-x-0"}`}
+        />
+      </button>
+    </div>
+  );
+}
+
 function errorMessage(error: unknown, fallback: string) {
   if (axios.isAxiosError(error)) {
     return error.response?.data?.detail || fallback;
@@ -48,6 +83,7 @@ function errorMessage(error: unknown, fallback: string) {
 export function SettingsTab() {
   const [settings, setSettings] = useState<LeaderboardSettings | null>(null);
   const [dropSettings, setDropSettings] = useState<DropSelectionSettings | null>(null);
+  const [onboardingSettings, setOnboardingSettings] = useState<OnboardingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -56,14 +92,15 @@ export function SettingsTab() {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_URL}/api/v1/admin/settings/leaderboards`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const dropRes = await axios.get(`${API_URL}/api/v1/admin/settings/drop-selection`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const headers = { Authorization: `Bearer ${token}` };
+      const [res, dropRes, onboardingRes] = await Promise.all([
+        axios.get(`${API_URL}/api/v1/admin/settings/leaderboards`, { headers }),
+        axios.get(`${API_URL}/api/v1/admin/settings/drop-selection`, { headers }),
+        axios.get(`${API_URL}/api/v1/admin/settings/onboarding`, { headers }),
+      ]);
       setSettings(res.data);
       setDropSettings(dropRes.data);
+      setOnboardingSettings(onboardingRes.data);
       setError("");
     } catch (err) {
       console.error(err);
@@ -98,23 +135,20 @@ export function SettingsTab() {
   };
 
   const handleSave = async () => {
-    if (!settings || !dropSettings) return;
+    if (!settings || !dropSettings || !onboardingSettings) return;
     setSaving(true);
     setSuccess("");
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `${API_URL}/api/v1/admin/settings/leaderboards`,
-        settings,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const dropRes = await axios.put(
-        `${API_URL}/api/v1/admin/settings/drop-selection`,
-        dropSettings,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const headers = { Authorization: `Bearer ${token}` };
+      const [res, dropRes, onboardingRes] = await Promise.all([
+        axios.put(`${API_URL}/api/v1/admin/settings/leaderboards`, settings, { headers }),
+        axios.put(`${API_URL}/api/v1/admin/settings/drop-selection`, dropSettings, { headers }),
+        axios.put(`${API_URL}/api/v1/admin/settings/onboarding`, onboardingSettings, { headers }),
+      ]);
       setSettings(res.data);
       setDropSettings(dropRes.data);
+      setOnboardingSettings(onboardingRes.data);
       setSuccess("Settings saved.");
       setError("");
     } catch (err) {
@@ -145,7 +179,7 @@ export function SettingsTab() {
         </div>
       )}
 
-      {settings && dropSettings && (
+      {settings && dropSettings && onboardingSettings && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-6">
           <div>
             <h3 className="text-lg font-semibold">Leaderboard Minimum Ratings</h3>
@@ -181,6 +215,23 @@ export function SettingsTab() {
               Smart picks and wildcards must add up to the total options.
             </div>
           )}
+
+          <div className="h-px bg-zinc-800" />
+
+          {/* ── Onboarding ────────────────────────────────────────── */}
+          <div>
+            <h3 className="text-lg font-semibold">Onboarding Animations</h3>
+            <p className="text-sm text-zinc-400 mt-1">
+              Controls when the "how it works" intro screens appear for voting and draft ranking.
+            </p>
+          </div>
+
+          <ToggleField
+            label="Always play onboarding"
+            description="When on, every user sees the intro screens every time they vote or rank — useful for testing. When off, intros only show on each user's first time."
+            checked={onboardingSettings.always_play}
+            onChange={(v) => setOnboardingSettings({ always_play: v })}
+          />
 
           <div className="flex items-center justify-end">
             <button

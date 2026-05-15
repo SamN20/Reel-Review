@@ -6,6 +6,8 @@ import { submitNextMovieBallot } from "../api";
 import type { NextVote, WeeklyDropOption } from "../types";
 import { MovieDraftCard } from "./MovieDraftCard";
 import { DraftSuccessOverlay } from "./DraftSuccessOverlay";
+import { RankOnboardingOverlay } from "./RankOnboardingOverlay";
+import { hasCompletedOnboarding, markOnboardingComplete, ONBOARDING_KEY_RANK } from "../onboarding";
 
 type RankedMoviePickerProps = {
   nextVote: NextVote;
@@ -25,6 +27,29 @@ export function RankedMoviePicker({ nextVote, onSaved }: RankedMoviePickerProps)
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [showDraftSuccess, setShowDraftSuccess] = useState(false);
+  const [showRankOnboarding, setShowRankOnboarding] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL || "";
+
+  // Check onboarding flag from admin settings.
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    axios
+      .get<{ always_play: boolean }>(`${API_URL}/api/v1/admin/settings/onboarding`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        if (res.data.always_play || !hasCompletedOnboarding(ONBOARDING_KEY_RANK)) {
+          setShowRankOnboarding(true);
+        }
+      })
+      .catch(() => {
+        if (!hasCompletedOnboarding(ONBOARDING_KEY_RANK)) {
+          setShowRankOnboarding(true);
+        }
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const optionMap = useMemo(() => {
     const map = new Map<number, WeeklyDropOption>();
@@ -66,6 +91,17 @@ export function RankedMoviePicker({ nextVote, onSaved }: RankedMoviePickerProps)
   const totalOptions = nextVote.options.length;
   const canSave = rankedIds.length > 0;
   const isSaved = message.includes("saved");
+
+  if (showRankOnboarding) {
+    return (
+      <RankOnboardingOverlay
+        onDismiss={() => {
+          markOnboardingComplete(ONBOARDING_KEY_RANK);
+          setShowRankOnboarding(false);
+        }}
+      />
+    );
+  }
 
   if (showDraftSuccess) {
     return (

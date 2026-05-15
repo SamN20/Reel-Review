@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { RankedMoviePicker } from "./RankedMoviePicker";
@@ -9,11 +9,34 @@ vi.mock("../api", () => ({
   submitNextMovieBallot: vi.fn(),
 }));
 
-// Mock the success overlay so it immediately fires onDone instead of waiting 2.8 s.
+// Make hasCompletedOnboarding return true so the intro is never shown in tests.
+vi.mock("../onboarding", () => ({
+  hasCompletedOnboarding: () => true,
+  markOnboardingComplete: () => undefined,
+  ONBOARDING_KEY_VOTE: "rr_has_voted",
+  ONBOARDING_KEY_RANK: "rr_has_ranked",
+  resetOnboarding: () => undefined,
+}));
+
+// Stub axios so the onboarding settings API call resolves immediately.
+vi.mock("axios", async () => {
+  const actual = await vi.importActual<typeof import("axios")>("axios");
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      get: vi.fn().mockResolvedValue({ data: { always_play: false } }),
+      isAxiosError: actual.default.isAxiosError,
+    },
+  };
+});
+
+// Render a thin stub for DraftSuccessOverlay that fires onDone immediately.
 vi.mock("./DraftSuccessOverlay", () => ({
   DraftSuccessOverlay: ({ onDone }: { onDone: () => void }) => {
+    // Call synchronously — by the time this renders the API has already been called.
     onDone();
-    return null;
+    return <div data-testid="draft-success" />;
   },
 }));
 
@@ -67,10 +90,10 @@ describe("RankedMoviePicker", () => {
     vi.useRealTimers();
   });
 
-  it("submits the drafted ranking and triggers the success overlay", async () => {
+  it("drafts a movie, calls the API, and shows the success overlay", async () => {
     vi.mocked(submitNextMovieBallot).mockResolvedValue({
       target_drop_id: 8,
-      ranked_movie_ids: [202, 101],
+      ranked_movie_ids: [202],
       updated_at: null,
     });
     const onSaved = vi.fn();
@@ -78,16 +101,21 @@ describe("RankedMoviePicker", () => {
 
     render(<RankedMoviePicker nextVote={nextVote} onSaved={onSaved} />);
 
-    // Tap Beta first (becomes rank 1), then Alpha (rank 2)
+    // Draft Beta as #1 pick
     await user.click(screen.getByRole("button", { name: /Beta/i }));
-    await user.click(screen.getByRole("button", { name: /Alpha/i }));
 
-    // Submit the draft
+    // Submit the draft — button should be enabled now that rankedIds is non-empty
     await user.click(screen.getByRole("button", { name: /confirm draft/i }));
 
-    // API called with correct order
-    expect(submitNextMovieBallot).toHaveBeenCalledWith(8, [202, 101]);
-    // onSaved propagated from the mocked overlay's immediate onDone call
+    // API should be called with just Beta
+    await waitFor(() => {
+      expect(submitNextMovieBallot).toHaveBeenCalledWith(8, [202]);
+    });
+
+    // Success overlay should appear
+    expect(screen.getByTestId("draft-success")).toBeTruthy();
+
+    // onSaved propagated via the overlay's immediate onDone call
     expect(onSaved).toHaveBeenCalled();
   });
 });

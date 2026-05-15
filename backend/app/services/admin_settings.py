@@ -20,6 +20,12 @@ DEFAULT_DROP_SELECTION_SETTINGS: Dict[str, Any] = {
     }
 }
 
+DEFAULT_ONBOARDING_SETTINGS: Dict[str, Any] = {
+    "always_play": False,
+}
+
+ONBOARDING_SETTINGS_KEY = "onboarding"
+
 
 def get_setting(db: Session, key: str, default_value: Dict[str, Any]) -> Dict[str, Any]:
     setting = db.query(AdminSetting).filter(AdminSetting.key == key).first()

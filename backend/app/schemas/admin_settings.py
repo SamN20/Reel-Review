@@ -23,3 +23,7 @@ class DropSelectionSettings(BaseModel):
     user_vote_total_options: int
     user_vote_smart_options: int
     user_vote_wildcard_options: int
+
+
+class OnboardingSettings(BaseModel):
+    always_play: bool
