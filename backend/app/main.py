@@ -23,6 +23,15 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 async def startup_event():
     from app.services.nolofication import nolofication
     await nolofication.setup_default_categories()
+    if settings.ENABLE_DROP_SCHEDULER:
+        from app.services.drop_scheduler import drop_scheduler
+        drop_scheduler.start()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    if settings.ENABLE_DROP_SCHEDULER:
+        from app.services.drop_scheduler import drop_scheduler
+        await drop_scheduler.stop()
 
 @app.get("/")
 def read_root():

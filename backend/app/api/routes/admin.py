@@ -11,14 +11,17 @@ from app.api import deps
 from app.models.user import User
 from app.models.movie import Movie
 from app.models.weekly_drop import WeeklyDrop
+from app.models.weekly_drop_vote import WeeklyDropBallot, WeeklyDropOption
 from app.models.rating import Rating
 from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
 from app.models.movie_request import MovieRequest
 from app.schemas.user import UserOut, UserUpdate
-from app.schemas.admin_settings import LeaderboardSettings
+from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings
 from app.core.config import settings
-from app.services.admin_settings import DEFAULT_LEADERBOARD_SETTINGS, get_or_create_setting, update_setting
+from app.services.admin_settings import DEFAULT_DROP_SELECTION_SETTINGS, DEFAULT_LEADERBOARD_SETTINGS, get_or_create_setting, update_setting
+from app.services.drop_scheduler import DropSchedulerService
+from app.services.drop_selection import DROP_SELECTION_SETTINGS_KEY, DropSelectionService, normalize_drop_selection_settings
 from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions, extract_youtube_trailer_key
 from app.services.ratings_calculator import RatingsCalculator
 from app.services.nolofication import nolofication
@@ -47,6 +50,14 @@ def serialize_leaderboard_settings(value: dict) -> LeaderboardSettings:
         divisive_min_ratings=normalize_min_ratings(
             value.get("divisive", {}).get("min_ratings", defaults["divisive"]["min_ratings"])
         ),
+    )
+
+def serialize_drop_selection_settings(value: dict) -> DropSelectionSettings:
+    normalized = normalize_drop_selection_settings(value)
+    return DropSelectionSettings(
+        user_vote_total_options=normalized["total_options"],
+        user_vote_smart_options=normalized["smart_options"],
+        user_vote_wildcard_options=normalized["wildcard_options"],
     )
 
 def get_tmdb_headers():
@@ -132,6 +143,32 @@ def update_leaderboard_settings(payload: LeaderboardSettings, db: Session = Depe
     }
     setting = update_setting(db, "leaderboards", next_value)
     return serialize_leaderboard_settings(setting.value)
+
+@router.get("/settings/drop-selection", response_model=DropSelectionSettings)
+def get_drop_selection_settings(db: Session = Depends(deps.get_db)):
+    setting = get_or_create_setting(db, DROP_SELECTION_SETTINGS_KEY, DEFAULT_DROP_SELECTION_SETTINGS)
+    return serialize_drop_selection_settings(setting.value)
+
+@router.put("/settings/drop-selection", response_model=DropSelectionSettings)
+def update_drop_selection_settings(payload: DropSelectionSettings, db: Session = Depends(deps.get_db)):
+    total = max(1, payload.user_vote_total_options)
+    smart = max(0, payload.user_vote_smart_options)
+    wildcard = max(0, payload.user_vote_wildcard_options)
+    if smart + wildcard != total:
+        raise HTTPException(status_code=400, detail="Smart and wildcard option counts must add up to the total.")
+
+    setting = update_setting(
+        db,
+        DROP_SELECTION_SETTINGS_KEY,
+        {
+            "user_vote": {
+                "total_options": total,
+                "smart_options": smart,
+                "wildcard_options": wildcard,
+            }
+        },
+    )
+    return serialize_drop_selection_settings(setting.value)
 
 @router.post("/reminders/weekend")
 async def send_weekend_reminder(db: Session = Depends(deps.get_db)):
@@ -510,7 +547,10 @@ def get_drops(db: Session = Depends(deps.get_db)):
             "start_date": drop.start_date,
             "end_date": drop.end_date,
             "is_active": drop.is_active,
-            "mode": drop.mode
+            "mode": drop.mode,
+            "resolved_at": drop.resolved_at,
+            "options_count": db.query(WeeklyDropOption).filter(WeeklyDropOption.weekly_drop_id == drop.id).count(),
+            "ballots_count": db.query(WeeklyDropBallot).filter(WeeklyDropBallot.weekly_drop_id == drop.id).count(),
         })
     return result
 
@@ -536,6 +576,28 @@ def activate_drop(drop_id: int, db: Session = Depends(deps.get_db)):
     db.commit()
     return {"message": "Drop activated"}
 
+@router.post("/drops/{drop_id}/generate-options")
+def generate_drop_options(drop_id: int, db: Session = Depends(deps.get_db)):
+    drop = db.query(WeeklyDrop).filter(WeeklyDrop.id == drop_id).first()
+    if not drop:
+        raise HTTPException(status_code=404, detail="Drop not found")
+    options = DropSelectionService.generate_options(db, drop, force=True)
+    db.commit()
+    return {"message": "Options generated", "options_count": len(options)}
+
+@router.post("/drops/rollover")
+def run_drop_rollover(db: Session = Depends(deps.get_db)):
+    drop = DropSchedulerService.rollover(db)
+    if not drop:
+        return {"message": "No scheduled drop found for the current Eastern date.", "drop_id": None}
+    return {
+        "message": "Rollover complete",
+        "drop_id": drop.id,
+        "movie_id": drop.movie_id,
+        "mode": drop.mode,
+        "is_active": drop.is_active,
+    }
+
 @router.delete("/drops/{drop_id}")
 def delete_drop(drop_id: int, db: Session = Depends(deps.get_db)):
     drop = db.query(WeeklyDrop).filter(WeeklyDrop.id == drop_id).first()
@@ -550,7 +612,23 @@ def delete_drop(drop_id: int, db: Session = Depends(deps.get_db)):
 def get_users(db: Session = Depends(deps.get_db)):
     """Get all registered users for administration."""
     users = db.query(User).order_by(User.id.desc()).all()
-    return users
+    return [serialize_admin_user(user) for user in users]
+
+def serialize_admin_user(user: User) -> dict[str, Any]:
+    return {
+        "id": user.id,
+        "keyn_id": user.keyn_id,
+        "username": user.username,
+        "email": user.email,
+        "display_name": user.display_name,
+        "use_display_name": True if user.use_display_name is None else user.use_display_name,
+        "show_on_leaderboard": True if user.show_on_leaderboard is None else user.show_on_leaderboard,
+        "public_profile": False if user.public_profile is None else user.public_profile,
+        "is_admin": False if user.is_admin is None else user.is_admin,
+        "is_active": True if user.is_active is None else user.is_active,
+        "created_at": user.created_at or datetime.now(timezone.utc),
+        "updated_at": user.updated_at,
+    }
 
 @router.patch("/users/{user_id}", response_model=UserOut)
 def update_user_status(user_id: int, user_update: UserUpdate, current_admin: User = Depends(deps.get_current_admin), db: Session = Depends(deps.get_db)):

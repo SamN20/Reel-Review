@@ -12,6 +12,14 @@ DEFAULT_LEADERBOARD_SETTINGS: Dict[str, Any] = {
     "divisive": {"min_ratings": 5},
 }
 
+DEFAULT_DROP_SELECTION_SETTINGS: Dict[str, Any] = {
+    "user_vote": {
+        "total_options": 6,
+        "smart_options": 4,
+        "wildcard_options": 2,
+    }
+}
+
 
 def get_setting(db: Session, key: str, default_value: Dict[str, Any]) -> Dict[str, Any]:
     setting = db.query(AdminSetting).filter(AdminSetting.key == key).first()

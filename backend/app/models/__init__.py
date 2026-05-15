@@ -7,3 +7,4 @@ from .review_like import ReviewLike
 from .review_report import ReviewReport
 from .movie_request import MovieRequest, MovieRequestSupporter
 from .admin_setting import AdminSetting
+from .weekly_drop_vote import WeeklyDropOption, WeeklyDropBallot

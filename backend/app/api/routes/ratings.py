@@ -7,9 +7,27 @@ from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
 from app.models.rating import Rating
 from app.schemas.rating import RatingCreate, RatingOut
+from app.services.drop_scheduler import DropSchedulerService
+from app.services.drop_selection import DropSelectionService
 from app.services.review_moderation import apply_auto_moderation
 
 router = APIRouter()
+
+
+def rating_response(db: Session, rating: Rating, current_user: User) -> dict:
+    payload = RatingOut.model_validate(rating).model_dump()
+    source_drop = rating.weekly_drop
+    if source_drop and source_drop.is_active:
+        target_drop = DropSelectionService.find_next_user_vote_drop(db, source_drop)
+        if target_drop:
+            payload["next_vote"] = DropSelectionService.serialize_next_vote(
+                db,
+                source_drop=source_drop,
+                target_drop=target_drop,
+                user=current_user,
+                today=DropSchedulerService.eastern_today(),
+            )
+    return payload
 
 @router.post("/", response_model=RatingOut)
 def create_rating(
@@ -46,7 +64,9 @@ def create_rating(
         
         db.commit()
         db.refresh(existing)
-        return existing
+        response = rating_response(db, existing, current_user)
+        db.commit()
+        return response
 
     # 4. Create rating
     rating = Rating(
@@ -61,7 +81,9 @@ def create_rating(
     db.commit()
     db.refresh(rating)
 
-    return rating
+    response = rating_response(db, rating, current_user)
+    db.commit()
+    return response
 
 @router.get("/me/{drop_id}", response_model=RatingOut)
 def get_my_rating(

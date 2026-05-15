@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Optional
 
+from app.schemas.drop_selection import NextVoteOut
+
 class RatingCreate(BaseModel):
     weekly_drop_id: int
     overall_score: int
@@ -26,6 +28,7 @@ class RatingOut(RatingCreate):
     is_flagged: bool = False
     is_approved: bool = True
     is_hidden: bool = False
+    next_vote: Optional[NextVoteOut] = None
 
     class Config:
         from_attributes = True

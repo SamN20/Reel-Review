@@ -17,6 +17,9 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { ScoreBar } from "../components/ScoreBar";
 import { MovieMetaDetails } from "../components/MovieMetaDetails";
+import { RankedMoviePicker } from "../features/dropSelection/components/RankedMoviePicker";
+import { VoteSuccessOverlay } from "../features/dropSelection/components/VoteSuccessOverlay";
+import type { NextVote } from "../features/dropSelection/types";
 import type { MovieSummary } from "../features/results/api";
 
 interface Drop {
@@ -25,6 +28,10 @@ interface Drop {
   start_date: string;
   end_date: string;
 }
+
+type RatingSubmitResponse = {
+  next_vote?: NextVote | null;
+};
 
 export default function Vote() {
   const { user, loading: authLoading } = useAuth();
@@ -51,6 +58,8 @@ export default function Vote() {
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [nextVote, setNextVote] = useState<NextVote | null>(null);
+  const [showVoteSuccess, setShowVoteSuccess] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -66,8 +75,8 @@ export default function Vote() {
         const endpoint = id ? `/api/v1/drops/${id}` : "/api/v1/drops/current";
         const response = await axios.get(`${API_URL}${endpoint}`);
         setDrop(response.data);
-      } catch (err: any) {
-        if (err.response?.status === 404) {
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
           setError(id ? "Weekly drop not found." : "No active weekly drop found right now. Check back Monday!");
         } else {
           setError("Failed to load drop.");
@@ -118,8 +127,8 @@ export default function Vote() {
             enjoyment: r.enjoyment_score || 0,
           });
         }
-      } catch (err: any) {
-        if (err.response?.status !== 404) {
+      } catch (err) {
+        if (!axios.isAxiosError(err) || err.response?.status !== 404) {
           console.error("Failed to fetch existing rating", err);
         }
       }
@@ -147,14 +156,18 @@ export default function Vote() {
         has_spoilers: isSpoiler,
       };
 
-      await axios.post(`${API_URL}/api/v1/ratings/`, payload, {
+      const response = await axios.post<RatingSubmitResponse>(`${API_URL}/api/v1/ratings/`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert("Vote submitted successfully!");
-      navigate("/");
-    } catch (err: any) {
+      if (response.data.next_vote) {
+        setNextVote(response.data.next_vote);
+      } else {
+        setShowVoteSuccess(true);
+      }
+    } catch (err) {
       console.error(err);
-      alert(err.response?.data?.detail || "Failed to submit vote");
+      const detail = axios.isAxiosError(err) ? err.response?.data?.detail : null;
+      alert(detail || "Failed to submit vote");
     } finally {
       setSubmitting(false);
     }
@@ -447,6 +460,26 @@ export default function Vote() {
           </div>
 
           {/* Submit Action */}
+          {nextVote && (
+            <RankedMoviePicker
+              nextVote={nextVote}
+              onSaved={() => navigate("/")}
+            />
+          )}
+
+          {showVoteSuccess && drop && (
+            <VoteSuccessOverlay
+              score={overallScore}
+              movieTitle={drop.movie.title}
+              backdropUrl={
+                drop.movie.backdrop_path
+                  ? `https://image.tmdb.org/t/p/original${drop.movie.backdrop_path}`
+                  : null
+              }
+              onDone={() => navigate("/")}
+            />
+          )}
+
           <div className="sticky bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950 to-transparent pt-8 pb-6 mt-auto">
             {isLocked ? (
               <div className="w-full py-5 rounded-xl font-black text-lg uppercase tracking-widest bg-zinc-900 text-zinc-400 border border-zinc-800 flex items-center justify-center gap-2 shadow-2xl">

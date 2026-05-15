@@ -17,3 +17,9 @@ class LeaderboardSettings(BaseModel):
     actors_min_ratings: int
     directors_min_ratings: int
     divisive_min_ratings: int
+
+
+class DropSelectionSettings(BaseModel):
+    user_vote_total_options: int
+    user_vote_smart_options: int
+    user_vote_wildcard_options: int

@@ -29,9 +29,52 @@ const MODE_LABELS: Record<string, { label: string; description: string }> = {
 
 const FLEXIBLE_MODES = ["user_vote", "random_pool"];
 
+type AdminDrop = {
+  id: number;
+  movie_id: number | null;
+  movie_title: string | null;
+  poster_path: string | null;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  mode: string;
+  resolved_at?: string | null;
+  options_count?: number;
+  ballots_count?: number;
+};
+
+type AdminMovie = {
+  id: number;
+  title: string;
+  release_date?: string | null;
+  poster_path?: string | null;
+  in_pool?: boolean;
+};
+
+type CalendarWeek = {
+  start: string;
+  end: string;
+  dateObj: Date;
+};
+
+type RolloverResponse = {
+  message: string;
+  drop_id: number | null;
+  movie_id?: number | null;
+  mode?: string;
+  is_active?: boolean;
+};
+
+function errorMessage(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.detail || error.message;
+  }
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export function DropsTab() {
-  const [drops, setDrops] = useState<any[]>([]);
-  const [importedMovies, setImportedMovies] = useState<any[]>([]);
+  const [drops, setDrops] = useState<AdminDrop[]>([]);
+  const [importedMovies, setImportedMovies] = useState<AdminMovie[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedWeekStart, setSelectedWeekStart] = useState<string | null>(
     null,
@@ -75,17 +118,19 @@ export function DropsTab() {
   };
 
   useEffect(() => {
+    // Existing admin tabs load their data on mount; keep this tab consistent.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDrops();
     fetchImportedMovies();
   }, []);
 
   const getWeeks = (count: number, offsetWeeks: number = 0) => {
-    const weeks = [];
+    const weeks: CalendarWeek[] = [];
     const today = new Date();
     const dayOfWeek = today.getDay();
     const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
-    let baseMonday = new Date(today);
+    const baseMonday = new Date(today);
     baseMonday.setDate(today.getDate() + offsetToMonday);
     baseMonday.setHours(0, 0, 0, 0);
 
@@ -153,9 +198,9 @@ export function DropsTab() {
       );
       setShowModal(false);
       fetchDrops();
-    } catch (err: any) {
+    } catch (err) {
       alert(
-        `Error scheduling drop: ${err.response?.data?.detail || err.message}`,
+        `Error scheduling drop: ${errorMessage(err)}`,
       );
     }
   };
@@ -168,9 +213,9 @@ export function DropsTab() {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchDrops();
-    } catch (err: any) {
+    } catch (err) {
       alert(
-        `Error deleting drop: ${err.response?.data?.detail || err.message}`,
+        `Error deleting drop: ${errorMessage(err)}`,
       );
     }
   };
@@ -192,9 +237,46 @@ export function DropsTab() {
         },
       );
       fetchDrops();
-    } catch (err: any) {
+    } catch (err) {
       alert(
-        `Error activating drop: ${err.response?.data?.detail || err.message}`,
+        `Error activating drop: ${errorMessage(err)}`,
+      );
+    }
+  };
+
+  const handleGenerateOptions = async (id: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_URL}/api/v1/admin/drops/${id}/generate-options`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      fetchDrops();
+    } catch (err) {
+      alert(
+        `Error generating options: ${errorMessage(err)}`,
+      );
+    }
+  };
+
+  const handleRunRollover = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post<RolloverResponse>(
+        `${API_URL}/api/v1/admin/drops/rollover`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      await fetchDrops();
+      alert(res.data.message);
+    } catch (err) {
+      alert(
+        `Error running rollover: ${errorMessage(err)}`,
       );
     }
   };
@@ -213,7 +295,7 @@ export function DropsTab() {
     });
   }, [importedMovies, movieSearch, scheduledMovieIds, showScheduledMovies]);
 
-  const renderWeekRow = (week: any, idx: number, isUpcoming: boolean) => {
+  const renderWeekRow = (week: CalendarWeek, idx: number, isUpcoming: boolean) => {
     const drop = drops.find((d) => d.start_date === week.start);
     const isThisWeek = isUpcoming && idx === 0;
     const mode = drop ? MODE_LABELS[drop.mode] || MODE_LABELS.admin_pick : null;
@@ -264,7 +346,7 @@ export function DropsTab() {
               {drop.movie_id && drop.poster_path ? (
                 <img
                   src={`https://image.tmdb.org/t/p/w200${drop.poster_path}`}
-                  alt={drop.movie_title}
+                  alt={drop.movie_title || "Scheduled movie"}
                   className="w-14 rounded shadow-md flex-shrink-0"
                 />
               ) : (
@@ -299,9 +381,22 @@ export function DropsTab() {
                   {mode?.label} <span className="text-zinc-700 mx-1">/</span>{" "}
                   {mode?.description}
                 </p>
+                {drop.mode === "user_vote" && (
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                    {drop.options_count || 0} Options / {drop.ballots_count || 0} Ballots
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2 min-w-28 w-full md:w-auto">
+                {drop.mode === "user_vote" && !drop.movie_id && (
+                  <button
+                    onClick={() => handleGenerateOptions(drop.id)}
+                    className="bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 px-3 py-1.5 rounded text-xs transition-all duration-300 border border-amber-800/60"
+                  >
+                    Generate Options
+                  </button>
+                )}
                 {!drop.is_active && (
                   <button
                     onClick={() => handleActivateDrop(drop.id)}
@@ -372,12 +467,20 @@ export function DropsTab() {
             Schedule and manage weekly movie drops. Full chronological control.
           </p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-red-900/20"
-        >
-          + Next Open Week
-        </button>
+        <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto md:justify-end">
+          <button
+            onClick={() => handleOpenModal()}
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-red-900/20"
+          >
+            + Next Open Week
+          </button>
+          <button
+            onClick={handleRunRollover}
+            className="w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-zinc-200 px-6 py-3 rounded-lg font-medium transition-all duration-300 border border-zinc-700"
+          >
+            Run Rollover
+          </button>
+        </div>
       </div>
 
       {/* Previous Drops Collapsible */}

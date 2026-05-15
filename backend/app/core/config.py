@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     # TMDB API
     TMDB_API_KEY: str
 
+    # Weekly drop automation
+    ENABLE_DROP_SCHEDULER: bool = True
+
     model_config = SettingsConfigDict(
         env_file=tuple(str(path) for path in ENV_FILES),
         env_ignore_empty=True,

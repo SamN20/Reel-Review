@@ -15,7 +15,15 @@ class WeeklyDrop(Base):
 
     is_active = Column(Boolean, default=True)
     mode = Column(String, default="admin_pick")
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
 
     movie = relationship("Movie")
+    options = relationship("WeeklyDropOption", back_populates="drop", cascade="all, delete-orphan")
+    ballots = relationship(
+        "WeeklyDropBallot",
+        back_populates="drop",
+        cascade="all, delete-orphan",
+        foreign_keys="WeeklyDropBallot.weekly_drop_id",
+    )
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())

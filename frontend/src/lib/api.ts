@@ -38,6 +38,15 @@ export async function apiPost<T>(path: string, payload?: unknown, authenticated 
   return response.data;
 }
 
+export async function apiPut<T>(path: string, payload?: unknown, authenticated = false) {
+  const response = await axios.put<T>(
+    buildApiUrl(path),
+    payload,
+    authenticated ? withAuth() : undefined,
+  );
+  return response.data;
+}
+
 export async function apiPatch<T>(path: string, payload?: unknown, authenticated = false) {
   const response = await axios.patch<T>(
     buildApiUrl(path),
