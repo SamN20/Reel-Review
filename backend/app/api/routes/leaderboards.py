@@ -9,8 +9,15 @@ from app.models.user import User
 from app.models.rating import Rating
 from app.models.movie import Movie
 from app.models.weekly_drop import WeeklyDrop
+from app.services.admin_settings import DEFAULT_LEADERBOARD_SETTINGS, get_setting
 
 router = APIRouter()
+
+def get_min_ratings(settings: dict, key: str, fallback: int) -> int:
+    value = settings.get(key, {}).get("min_ratings")
+    if isinstance(value, int) and value > 0:
+        return value
+    return fallback
 
 class LeaderboardUser(BaseModel):
     id: int
@@ -55,6 +62,8 @@ def get_top_users(db: Session = Depends(deps.get_db)):
 
 @router.get("/directors", response_model=List[LeaderboardDirector])
 def get_top_directors(db: Session = Depends(deps.get_db)):
+    settings = get_setting(db, "leaderboards", DEFAULT_LEADERBOARD_SETTINGS)
+    min_ratings = get_min_ratings(settings, "directors", DEFAULT_LEADERBOARD_SETTINGS["directors"]["min_ratings"])
     directors = (
         db.query(
             Movie.director_name.label("name"),
@@ -65,7 +74,7 @@ def get_top_directors(db: Session = Depends(deps.get_db)):
         .filter(Movie.director_name.isnot(None))
         .filter(Movie.director_name != "")
         .group_by(Movie.director_name)
-        .having(func.count(Rating.id) >= 5) # Minimum 5 ratings across all movies
+        .having(func.count(Rating.id) >= min_ratings)
         .order_by(desc("average_score"))
         .limit(20)
         .all()
@@ -75,6 +84,8 @@ def get_top_directors(db: Session = Depends(deps.get_db)):
 
 @router.get("/divisive", response_model=List[LeaderboardDivisive])
 def get_divisive_movies(db: Session = Depends(deps.get_db)):
+    settings = get_setting(db, "leaderboards", DEFAULT_LEADERBOARD_SETTINGS)
+    min_ratings = get_min_ratings(settings, "divisive", DEFAULT_LEADERBOARD_SETTINGS["divisive"]["min_ratings"])
     latest_drops = (
         db.query(WeeklyDrop.movie_id, func.max(WeeklyDrop.id).label("drop_id"))
         .group_by(WeeklyDrop.movie_id)
@@ -92,7 +103,7 @@ def get_divisive_movies(db: Session = Depends(deps.get_db)):
         .join(Rating, Rating.movie_id == Movie.id)
         .outerjoin(latest_drops, latest_drops.c.movie_id == Movie.id)
         .group_by(Movie.id, latest_drops.c.drop_id)
-        .having(func.count(Rating.id) >= 5) # Minimum 5 ratings to be considered
+        .having(func.count(Rating.id) >= min_ratings)
         .order_by(desc("std_dev"))
         .limit(20)
         .all()
@@ -117,6 +128,8 @@ class LeaderboardActor(BaseModel):
 
 @router.get("/actors", response_model=List[LeaderboardActor])
 def get_top_actors(db: Session = Depends(deps.get_db)):
+    settings = get_setting(db, "leaderboards", DEFAULT_LEADERBOARD_SETTINGS)
+    min_ratings = get_min_ratings(settings, "actors", DEFAULT_LEADERBOARD_SETTINGS["actors"]["min_ratings"])
     # Unnest the cast JSONB array
     cast_elem = func.jsonb_array_elements(Movie.cast).column_valued("cast_elem")
     
@@ -141,7 +154,7 @@ def get_top_actors(db: Session = Depends(deps.get_db)):
         )
         .join(Rating, Rating.movie_id == subquery.c.movie_id)
         .group_by(subquery.c.name)
-        .having(func.count(Rating.id) >= 5) # Minimum 5 ratings across all movies
+        .having(func.count(Rating.id) >= min_ratings)
         .order_by(desc("average_score"))
         .limit(20)
         .all()
@@ -166,6 +179,8 @@ class CategoryLeaderboards(BaseModel):
 
 @router.get("/categories", response_model=CategoryLeaderboards)
 def get_category_leaderboards(db: Session = Depends(deps.get_db)):
+    settings = get_setting(db, "leaderboards", DEFAULT_LEADERBOARD_SETTINGS)
+    min_ratings = get_min_ratings(settings, "categories", DEFAULT_LEADERBOARD_SETTINGS["categories"]["min_ratings"])
     latest_drops = (
         db.query(WeeklyDrop.movie_id, func.max(WeeklyDrop.id).label("drop_id"))
         .group_by(WeeklyDrop.movie_id)
@@ -188,7 +203,7 @@ def get_category_leaderboards(db: Session = Depends(deps.get_db)):
         .join(Rating, Rating.movie_id == Movie.id)
         .outerjoin(latest_drops, latest_drops.c.movie_id == Movie.id)
         .group_by(Movie.id, latest_drops.c.drop_id)
-        .having(func.count(Rating.id) >= 5)
+        .having(func.count(Rating.id) >= min_ratings)
         .all()
     )
     

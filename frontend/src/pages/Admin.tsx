@@ -9,6 +9,7 @@ import { DropsTab } from "../features/admin/tabs/DropsTab";
 import { UsersTab } from "../features/admin/tabs/UsersTab";
 import { ModerationTab } from "../features/admin/tabs/ModerationTab";
 import { MovieRequestsTab } from "../features/admin/tabs/MovieRequestsTab";
+import { SettingsTab } from "../features/admin/tabs/SettingsTab";
 
 export default function Admin() {
   const { user, loading } = useAuth();
@@ -99,6 +100,12 @@ export default function Admin() {
           >
             Moderation
           </button>
+          <button
+            onClick={() => handleTabChange("settings")}
+            className={`text-left px-4 py-2 rounded-lg transition-colors ${activeTab === "settings" ? "bg-red-600 text-white" : "text-zinc-400 hover:bg-zinc-800"}`}
+          >
+            Settings
+          </button>
         </nav>
         <div className="mt-auto pt-6">
           <button
@@ -146,6 +153,7 @@ export default function Admin() {
         {activeTab === "requests" && <MovieRequestsTab />}
         {activeTab === "users" && <UsersTab />}
         {activeTab === "moderation" && <ModerationTab />}
+        {activeTab === "settings" && <SettingsTab />}
       </div>
     </div>
   );

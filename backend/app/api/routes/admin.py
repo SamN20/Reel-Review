@@ -16,7 +16,9 @@ from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
 from app.models.movie_request import MovieRequest
 from app.schemas.user import UserOut, UserUpdate
+from app.schemas.admin_settings import LeaderboardSettings
 from app.core.config import settings
+from app.services.admin_settings import DEFAULT_LEADERBOARD_SETTINGS, get_or_create_setting, update_setting
 from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions, extract_youtube_trailer_key
 from app.services.ratings_calculator import RatingsCalculator
 from app.services.nolofication import nolofication
@@ -24,6 +26,28 @@ from app.services.nolofication import nolofication
 router = APIRouter(dependencies=[Depends(deps.get_current_admin)])
 
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
+
+def normalize_min_ratings(value: int) -> int:
+    if value < 1:
+        return 1
+    return value
+
+def serialize_leaderboard_settings(value: dict) -> LeaderboardSettings:
+    defaults = DEFAULT_LEADERBOARD_SETTINGS
+    return LeaderboardSettings(
+        categories_min_ratings=normalize_min_ratings(
+            value.get("categories", {}).get("min_ratings", defaults["categories"]["min_ratings"])
+        ),
+        actors_min_ratings=normalize_min_ratings(
+            value.get("actors", {}).get("min_ratings", defaults["actors"]["min_ratings"])
+        ),
+        directors_min_ratings=normalize_min_ratings(
+            value.get("directors", {}).get("min_ratings", defaults["directors"]["min_ratings"])
+        ),
+        divisive_min_ratings=normalize_min_ratings(
+            value.get("divisive", {}).get("min_ratings", defaults["divisive"]["min_ratings"])
+        ),
+    )
 
 def get_tmdb_headers():
     return {
@@ -92,6 +116,22 @@ def get_dashboard_stats(db: Session = Depends(deps.get_db)):
         "moderation_count": flagged_count,
         "top_raters": top_raters
     }
+
+@router.get("/settings/leaderboards", response_model=LeaderboardSettings)
+def get_leaderboard_settings(db: Session = Depends(deps.get_db)):
+    setting = get_or_create_setting(db, "leaderboards", DEFAULT_LEADERBOARD_SETTINGS)
+    return serialize_leaderboard_settings(setting.value)
+
+@router.put("/settings/leaderboards", response_model=LeaderboardSettings)
+def update_leaderboard_settings(payload: LeaderboardSettings, db: Session = Depends(deps.get_db)):
+    next_value = {
+        "categories": {"min_ratings": normalize_min_ratings(payload.categories_min_ratings)},
+        "actors": {"min_ratings": normalize_min_ratings(payload.actors_min_ratings)},
+        "directors": {"min_ratings": normalize_min_ratings(payload.directors_min_ratings)},
+        "divisive": {"min_ratings": normalize_min_ratings(payload.divisive_min_ratings)},
+    }
+    setting = update_setting(db, "leaderboards", next_value)
+    return serialize_leaderboard_settings(setting.value)
 
 @router.post("/reminders/weekend")
 async def send_weekend_reminder(db: Session = Depends(deps.get_db)):

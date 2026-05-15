@@ -44,6 +44,9 @@ class FakeQuery:
     def all(self):
         return self._results
 
+    def first(self):
+        return self._results[0] if self._results else None
+
     def subquery(self):
         return self._subquery
 
@@ -65,6 +68,8 @@ class FakeActorSession:
         self._subquery = FakeSubquery()
 
     def query(self, *args, **kwargs):
+        if args and getattr(args[0], "__tablename__", None) == "admin_settings":
+            return FakeQuery([])
         if self._calls == 0:
             self._calls += 1
             return FakeQuery([], subquery=self._subquery)
@@ -79,6 +84,8 @@ class FakeSession:
         self._calls = 0
 
     def query(self, *args, **kwargs):
+        if args and getattr(args[0], "__tablename__", None) == "admin_settings":
+            return FakeQuery([])
         if self._calls == 0:
             self._calls += 1
             return FakeQuery([], subquery=self._subquery)

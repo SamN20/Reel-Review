@@ -59,6 +59,13 @@ For detailed planning and design specifications, see the `docs/` directory. UI m
 - **Backend**: `make test-backend`
 - **Frontend**: `make test-frontend`
 
+### Admin Settings Framework
+
+Reel Review stores site-wide configuration in the `admin_settings` table. Each row has a `key` and a JSON `value`, which keeps settings flexible for future additions.
+
+Current setting keys:
+- `leaderboards`: Per-leaderboard minimum rating thresholds (managed in the Admin Panel > Settings).
+
 ### Database Migrations
 
 The backend now applies Alembic migrations automatically when the backend container starts. To run them manually against a running dev stack:
