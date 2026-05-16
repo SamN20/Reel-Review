@@ -146,7 +146,7 @@ export default function Home() {
           activeVoters={activeVoters}
         />
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-16 -mt-8 relative z-20">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-16 mt-8 relative z-20">
           <FilmShelf pastDrops={pastDrops} />
           <CommunityDiscussions />
         </div>

@@ -265,4 +265,31 @@
   .admin-filter-date::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
   }
+
+  /* ── Hero section animations ──────────────────────────────────────── */
+
+  .hero-shell {
+    min-height: 100svh;
+  }
+
+  @keyframes hero-scroll-bounce {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50%       { transform: translateY(6px); opacity: 1; }
+  }
+
+  .hero-scroll-chevron {
+    animation: hero-scroll-bounce 2s ease-in-out infinite;
+  }
+
+  @media (min-width: 640px) {
+    .hero-shell {
+      min-height: max(600px, 85vh);
+    }
+  }
+
+  @media (max-height: 760px) {
+    .hero-scroll-hint {
+      display: none;
+    }
+  }
 }
