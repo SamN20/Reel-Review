@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import Home from "./pages/Home";
 import AuthCallback from "./pages/AuthCallback";
@@ -18,11 +18,55 @@ import "./index.css";
 
 import ProfilePage from "./pages/ProfilePage";
 import PersonPage from "./features/crew/pages/PersonPage";
+import { usePageMeta } from "./lib/seo";
+
+function RouteMetaManager() {
+  const location = useLocation();
+  const { pathname } = location;
+
+  let title = "Reel Review | Weekly Community Movie Night";
+
+  if (pathname.startsWith("/vote")) {
+    title = "Rate This Week's Movie | Reel Review";
+  } else if (pathname.startsWith("/results")) {
+    title = "Results | Reel Review";
+  } else if (pathname.startsWith("/film-shelf/vote-order")) {
+    title = "Vote Order | Reel Review";
+  } else if (pathname.startsWith("/film-shelf")) {
+    title = "Film Shelf | Reel Review";
+  } else if (pathname.startsWith("/leaderboards")) {
+    title = "Leaderboards | Reel Review";
+  } else if (pathname.startsWith("/discussions")) {
+    title = "Discussions | Reel Review";
+  } else if (pathname.startsWith("/requests")) {
+    title = "Movie Requests | Reel Review";
+  } else if (pathname.startsWith("/admin")) {
+    title = "Admin Dashboard | Reel Review";
+  } else if (pathname.startsWith("/profile") || pathname.startsWith("/p/")) {
+    title = "Profile | Reel Review";
+  } else if (pathname.startsWith("/actor/")) {
+    title = "Cast Spotlight | Reel Review";
+  } else if (pathname.startsWith("/director/")) {
+    title = "Director Spotlight | Reel Review";
+  } else if (pathname.startsWith("/terms")) {
+    title = "Terms of Use | Reel Review";
+  } else if (pathname.startsWith("/privacy")) {
+    title = "Privacy Policy | Reel Review";
+  } else if (pathname.startsWith("/attribution")) {
+    title = "Attribution | Reel Review";
+  } else if (pathname.startsWith("/auth/callback")) {
+    title = "Signing In | Reel Review";
+  }
+
+  usePageMeta({ title });
+  return null;
+}
 
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <RouteMetaManager />
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Home />} />

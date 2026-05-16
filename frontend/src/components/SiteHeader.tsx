@@ -79,7 +79,7 @@ export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
               className="flex items-center gap-2 text-red-600"
               onClick={() => navigate("/")}
             >
-              <Film size={28} strokeWidth={2.5} />
+              <img src="/logo-icon.svg?v=2" alt="Reel Review Icon" className="h-8 w-8" />
               <span className="text-xl font-black tracking-tighter text-white uppercase">
                 Reel Review
               </span>

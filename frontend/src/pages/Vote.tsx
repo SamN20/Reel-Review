@@ -23,6 +23,7 @@ import { VoteOnboardingOverlay } from "../features/dropSelection/components/Vote
 import { hasCompletedOnboarding, markOnboardingComplete, ONBOARDING_KEY_VOTE } from "../features/dropSelection/onboarding";
 import type { NextVote } from "../features/dropSelection/types";
 import type { MovieSummary } from "../features/results/api";
+import { usePageMeta } from "../lib/seo";
 
 interface Drop {
   id: number;
@@ -65,6 +66,19 @@ export default function Vote() {
   const [showVoteOnboarding, setShowVoteOnboarding] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
+  const movieTitle = drop?.movie?.title;
+  const movieYear = drop?.movie?.release_date
+    ? ` (${new Date(drop.movie.release_date).getFullYear()})`
+    : "";
+
+  usePageMeta({
+    title: movieTitle
+      ? `Rate ${movieTitle}${movieYear} | Reel Review`
+      : "Rate This Week's Movie | Reel Review",
+    description: movieTitle
+      ? `Submit your rating for ${movieTitle}${movieYear} on Reel Review and help shape this week's community movie result.`
+      : "Submit your weekly movie rating on Reel Review.",
+  });
 
   // Fetch the admin onboarding flag and decide whether to show the intro.
   useEffect(() => {

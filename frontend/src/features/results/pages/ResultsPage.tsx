@@ -12,6 +12,7 @@ import {
 import { CommunityTakes } from "../components/CommunityTakes";
 import { ResultsHero } from "../components/ResultsHero";
 import { SubCategoryBreakdown } from "../components/SubCategoryBreakdown";
+import { usePageMeta } from "../../../lib/seo";
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -23,6 +24,20 @@ export default function ResultsPage() {
   const [expandedRanking, setExpandedRanking] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const movieTitle = data?.movie?.title;
+  const movieYear = data?.movie?.release_date
+    ? ` (${new Date(data.movie.release_date).getFullYear()})`
+    : "";
+  const roundedScore = data ? Math.round(data.official_score) : null;
+
+  usePageMeta({
+    title: movieTitle
+      ? `Results: ${movieTitle}${movieYear} | Reel Review`
+      : "Results | Reel Review",
+    description: movieTitle && roundedScore !== null
+      ? `See the Reel Review results for ${movieTitle}${movieYear}, including the community score of ${roundedScore}/100 and the full breakdown from this week's drop.`
+      : "See the latest Reel Review community results and score breakdowns.",
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {

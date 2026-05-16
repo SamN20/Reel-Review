@@ -1,7 +1,11 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+
+from app.api import deps
 from app.core.config import settings
 from app.api.main import api_router
+from app.seo import build_seo_payload, render_preview_html
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -40,3 +44,12 @@ def read_root():
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/seo/render", response_class=HTMLResponse)
+def render_seo_preview(
+    path: str = Query(default="/"),
+    db=Depends(deps.get_db),
+):
+    payload = build_seo_payload(db, path)
+    return HTMLResponse(content=render_preview_html(payload))

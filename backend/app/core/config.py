@@ -9,6 +9,7 @@ ENV_FILES = [BASE_DIR / ".env", BASE_DIR.parent / ".env"]
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Reel-Review API"
     API_V1_STR: str = "/api/v1"
+    FRONTEND_URL: str = "http://localhost:5173"
 
     # PostgreSQL config
     POSTGRES_USER: str

@@ -6,6 +6,7 @@ import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
 import { Loader2, Settings, Star, Clock, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
+import { usePageMeta } from "../lib/seo";
 
 interface ProfileMovie {
   id: number;
@@ -48,6 +49,18 @@ export default function ProfilePage() {
   const [savingSettings, setSavingSettings] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
+  const preferredName = profile?.use_display_name && profile?.display_name ? profile.display_name : profile?.username;
+
+  usePageMeta({
+    title: preferredName
+      ? `${preferredName} | Reel Review`
+      : isPublicView
+        ? "Public Profile | Reel Review"
+        : "Profile | Reel Review",
+    description: profile
+      ? `${preferredName}'s Reel Review profile with ${profile.total_votes} ratings and an average score of ${profile.average_score}/100.`
+      : "Browse a Reel Review community profile and recent ratings.",
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -121,8 +134,6 @@ export default function ProfilePage() {
 
   if (authLoading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white"><Loader2 className="animate-spin" /></div>;
   if (!isPublicView && !user) return <Navigate to="/?login=true" />;
-
-  const preferredName = profile?.use_display_name && profile?.display_name ? profile.display_name : profile?.username;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col font-sans">

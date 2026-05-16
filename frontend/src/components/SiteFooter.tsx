@@ -1,4 +1,3 @@
-import { Film } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function SiteFooter() {
@@ -13,7 +12,7 @@ export function SiteFooter() {
             onClick={() => navigate("/")}
             className="flex items-center gap-2 text-red-600 hover:text-red-500 transition-colors"
           >
-            <Film size={24} strokeWidth={2.5} />
+            <img src="/logo-icon.svg?v=2" alt="Reel Review Icon" className="h-6 w-6" />
             <span className="text-lg font-black tracking-tighter text-white uppercase flex items-center gap-1.5">
               Reel Review
               <span className="text-[10px] font-bold tracking-normal normal-case text-zinc-600 font-sans">-</span>

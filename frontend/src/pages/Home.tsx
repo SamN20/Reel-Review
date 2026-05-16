@@ -8,6 +8,7 @@ import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { LoginScreen } from "../components/LoginScreen";
+import { usePageMeta } from "../lib/seo";
 
 interface CurrentDrop {
   id: number;
@@ -15,6 +16,7 @@ interface CurrentDrop {
     title: string;
     overview: string | null;
     backdrop_path: string | null;
+    release_date?: string | null;
   };
   start_date: string;
   end_date: string;
@@ -39,6 +41,19 @@ export default function Home() {
   const [showLoader, setShowLoader] = useState(!cachedData);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
+  const currentMovieTitle = currentDrop?.movie?.title;
+  const currentMovieYear = currentDrop?.movie?.release_date
+    ? ` (${new Date(currentDrop.movie.release_date).getFullYear()})`
+    : "";
+
+  usePageMeta({
+    title: currentMovieTitle
+      ? `Reel Review | This Week: ${currentMovieTitle}${currentMovieYear}`
+      : "Reel Review | Weekly Community Movie Night",
+    description: currentMovieTitle
+      ? `This week's featured movie is ${currentMovieTitle}${currentMovieYear}. Rate it with the community, follow the live weekly drop, and catch up on past results in Reel Review.`
+      : "A cinematic, community-driven weekly movie club where the byNolo community rates one featured film together.",
+  });
 
   useEffect(() => {
     const startTime = Date.now();
