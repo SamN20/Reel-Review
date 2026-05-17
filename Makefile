@@ -3,6 +3,9 @@ ifneq ("$(wildcard .env)","")
 	export
 endif
 
+# Local backup directory for DB dumps (can be overridden)
+BACKUP_DIR ?= db-backups
+
 .PHONY: dev prod down build build-prod db-shell db-migrate db-seed db-unseed test-frontend test-backend clean setup
 
 dev:
@@ -22,6 +25,13 @@ build-prod:
 
 db-shell:
 	docker compose exec -e PGPASSWORD=$(POSTGRES_PASSWORD) db psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+db-backup:
+	mkdir -p $(BACKUP_DIR)
+	docker compose -f docker-compose.prod.yml exec -T db pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB) > $(BACKUP_DIR)/reelreview-$(shell date +%F-%H%M%S).sql
+
+db-restore:
+	python3 scripts/db_restore_cli.py --backup-dir $(BACKUP_DIR)
 
 db-migrate:
 	docker compose exec backend alembic upgrade head

@@ -20,6 +20,9 @@ yarn-error.log*
 # Docker
 .docker/
 
+# database
+db-backups
+
 # Backend (Python/FastAPI/Poetry)
 **/__pycache__/
 **/*.py[cod]
