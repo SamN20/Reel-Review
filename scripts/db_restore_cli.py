@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore a selected DB backup into the prod Postgres container.
+"""Restore a selected DB backup into a selected Postgres compose service.
 
 Usage: python3 scripts/db_restore_cli.py [--backup-file PATH] [--backup-dir DIR]
 
@@ -7,7 +7,7 @@ If --backup-file is not provided the script lists files in BACKUP_DIR (default: 
 and prompts you to choose one.
 
 The script reads Postgres connection vars from the environment: POSTGRES_USER, POSTGRES_DB.
-It runs: docker compose -f docker-compose.prod.yml exec -T db psql -U USER -d DB
+It runs: docker compose ... exec -T db psql -U USER -d DB
 and streams the SQL file into the container.
 """
 from __future__ import annotations
@@ -72,22 +72,34 @@ def choose_file(files: list[Path]) -> Optional[Path]:
         print("Invalid choice — try again.")
 
 
-def run_restore(backup_file: Path, pg_user: str, pg_db: str) -> int:
+def run_restore(
+    backup_file: Path,
+    pg_user: str,
+    pg_db: str,
+    compose_file: str,
+    project_name: str | None,
+    env_file: str | None,
+) -> int:
     print(f"Restoring '{backup_file}' into database '{pg_db}' as user '{pg_user}'")
-    cmd = [
-        "docker",
-        "compose",
-        "-f",
-        "docker-compose.prod.yml",
-        "exec",
-        "-T",
-        "db",
-        "psql",
-        "-U",
-        pg_user,
-        "-d",
-        pg_db,
-    ]
+    cmd = ["docker", "compose"]
+    if env_file:
+        cmd.extend(["--env-file", env_file])
+    if project_name:
+        cmd.extend(["-p", project_name])
+    cmd.extend(
+        [
+            "-f",
+            compose_file,
+            "exec",
+            "-T",
+            "db",
+            "psql",
+            "-U",
+            pg_user,
+            "-d",
+            pg_db,
+        ]
+    )
 
     # Stream the file into the psql command via stdin
     with backup_file.open("rb") as fh:
@@ -96,9 +108,12 @@ def run_restore(backup_file: Path, pg_user: str, pg_db: str) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Select and restore a DB backup into prod DB")
+    ap = argparse.ArgumentParser(description="Select and restore a DB backup into a compose-managed DB")
     ap.add_argument("--backup-file", "-f", help="Path to a specific backup file to restore")
     ap.add_argument("--backup-dir", "-d", default=os.environ.get("BACKUP_DIR", "db-backups"), help="Directory containing backups")
+    ap.add_argument("--compose-file", default="docker-compose.prod.yml", help="Compose file to target")
+    ap.add_argument("--project-name", default=os.environ.get("COMPOSE_PROJECT_NAME"), help="Compose project name to target")
+    ap.add_argument("--env-file", default=os.environ.get("APP_ENV_FILE"), help="Compose env file to target")
     ap.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
     args = ap.parse_args()
 
@@ -123,10 +138,10 @@ def main() -> int:
     pg_user = os.environ.get("POSTGRES_USER")
     pg_db = os.environ.get("POSTGRES_DB")
     if not pg_user or not pg_db:
-        # Try reading .env from repo root
-        env_path = Path(__file__).resolve().parents[1] / ".env"
+        env_filename = args.env_file or ".env"
+        env_path = Path(__file__).resolve().parents[1] / env_filename
         if env_path.exists():
-            print("Loading DB creds from .env")
+            print(f"Loading DB creds from {env_path.name}")
             for line in env_path.read_text().splitlines():
                 if "POSTGRES_USER" in line and "=" in line:
                     pg_user = pg_user or line.split("=", 1)[1].strip()
@@ -143,7 +158,14 @@ def main() -> int:
             print("Restore cancelled.")
             return 0
 
-    code = run_restore(backup_path, pg_user, pg_db)
+    code = run_restore(
+        backup_path,
+        pg_user,
+        pg_db,
+        args.compose_file,
+        args.project_name,
+        args.env_file,
+    )
     if code == 0:
         print("Restore completed successfully.")
     else:

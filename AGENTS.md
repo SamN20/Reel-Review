@@ -35,6 +35,21 @@ docker compose up --build
 
 For direct Python workflows, use the documented virtualenv setup in `README.md`.
 
+## Environment Safety
+
+Reel Review now has distinct local/dev, beta, and production environments.
+
+1. Treat `.env` as legacy/local convenience unless the maintainer explicitly says otherwise for the current task.
+2. Treat `.env.prod` as the production source of truth for hosted production commands.
+3. Treat `.env.beta` as the beta source of truth for hosted beta commands.
+4. Never copy values between prod and beta casually; keep separate database names, ports, callback URLs, compose project names, and service identifiers where applicable.
+5. When changing deployment, Docker, Make, backup, restore, migration, or environment configuration:
+   - preserve separation between beta and production
+   - prefer the explicit `make prod-*` and `make beta-*` targets
+   - call out clearly in notes which environment a change affects
+6. Do not run destructive or state-changing production or beta commands unless the user explicitly asks for that environment.
+7. If updating env templates or docs, keep examples for both `reelreview.bynolo.ca` and `beta-reelreview.bynolo.ca` aligned.
+
 ## Validation Before PR
 
 Run project checks after making changes:

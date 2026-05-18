@@ -27,7 +27,7 @@ For detailed planning and design specifications, see the `docs/` directory. UI m
 ├── frontend/         # React/Vite application
 ├── proxy/            # Nginx configuration
 ├── docker-compose.yml       # Dev orchestration
-├── docker-compose.prod.yml  # Prod orchestration
+├── docker-compose.prod.yml  # Prod/Beta orchestration
 └── Makefile          # Project shortcuts
 ```
 
@@ -53,6 +53,37 @@ For detailed planning and design specifications, see the `docs/` directory. UI m
    - Frontend: [http://localhost:3000](http://localhost:3000)
    - Backend API: [http://localhost:8000/docs](http://localhost:8000/docs)
    - Adminer (DB Viewer): [http://localhost:8080](http://localhost:8080)
+
+### Production And Beta On One Server
+
+Reel Review now supports separate production and beta stacks on the same host with:
+- separate env files
+- separate Docker Compose project names
+- separate Postgres volumes and databases
+- separate host ports
+
+1. Create the env files:
+   ```bash
+   make setup-prod
+   make setup-beta
+   ```
+
+2. Fill in `.env.prod` and `.env.beta` with the correct domains, OAuth redirect URIs, secrets, ports, and database names.
+
+3. Start each stack explicitly:
+   ```bash
+   make prod-up
+   make beta-up
+   ```
+
+Recommended beta settings:
+- `FRONTEND_URL=https://beta-reelreview.bynolo.ca`
+- `VITE_API_URL=https://beta-reelreview.bynolo.ca`
+- `KEYN_REDIRECT_URI=https://beta-reelreview.bynolo.ca/auth/callback`
+- separate `POSTGRES_DB`
+- separate `PROXY_PORT`, `FRONTEND_PORT`, `BACKEND_PORT`, and `DB_VIEWER_PORT`
+
+The Make targets print the target environment and require an explicit confirmation string before mutating the production or beta stacks.
 
 ### Testing
 
@@ -119,6 +150,13 @@ The backend now applies Alembic migrations automatically when the backend contai
 
 ```bash
 make db-migrate
+```
+
+For hosted environments use the explicit targets instead:
+
+```bash
+make prod-db-migrate
+make beta-db-migrate
 ```
 
 ## Contributing
