@@ -24,7 +24,15 @@ DEFAULT_ONBOARDING_SETTINGS: Dict[str, Any] = {
     "always_play": False,
 }
 
+DEFAULT_NOTIFICATION_BANNER_SETTINGS: Dict[str, Any] = {
+    "enabled": False,
+    "messages": [],
+    "scroll_enabled": False,
+    "link_url": "",
+}
+
 ONBOARDING_SETTINGS_KEY = "onboarding"
+NOTIFICATION_BANNER_SETTINGS_KEY = "notification_banner"
 
 
 def get_setting(db: Session, key: str, default_value: Dict[str, Any]) -> Dict[str, Any]:

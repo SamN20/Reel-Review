@@ -7,6 +7,7 @@ import { SiteFooter } from "../components/SiteFooter";
 import { ExternalLink, Loader2, Settings, Star, Clock, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePageMeta } from "../lib/seo";
+import { NotificationBanner } from "../components/NotificationBanner";
 
 interface ProfileMovie {
   id: number;
@@ -144,6 +145,7 @@ export default function ProfilePage() {
       <SiteHeader />
       
       <main className="flex-1 pt-24 pb-12 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <NotificationBanner />
         {loading ? (
           <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-red-600 w-8 h-8" /></div>
         ) : profile ? (

@@ -17,12 +17,14 @@ from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
 from app.models.movie_request import MovieRequest
 from app.schemas.user import UserOut, UserUpdate
-from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings, OnboardingSettings
+from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings, OnboardingSettings, NotificationBannerSettings
 from app.core.config import settings
 from app.services.admin_settings import (
     DEFAULT_DROP_SELECTION_SETTINGS,
     DEFAULT_LEADERBOARD_SETTINGS,
     DEFAULT_ONBOARDING_SETTINGS,
+    DEFAULT_NOTIFICATION_BANNER_SETTINGS,
+    NOTIFICATION_BANNER_SETTINGS_KEY,
     ONBOARDING_SETTINGS_KEY,
     get_or_create_setting,
     update_setting,
@@ -65,6 +67,19 @@ def serialize_drop_selection_settings(value: dict) -> DropSelectionSettings:
         user_vote_total_options=normalized["total_options"],
         user_vote_smart_options=normalized["smart_options"],
         user_vote_wildcard_options=normalized["wildcard_options"],
+    )
+
+def serialize_notification_banner_settings(value: dict) -> NotificationBannerSettings:
+    legacy_message = value.get("message")
+    messages = value.get("messages")
+    if not isinstance(messages, list):
+        messages = [legacy_message] if legacy_message else []
+    normalized_messages = [str(m).strip() for m in messages if str(m).strip()]
+    return NotificationBannerSettings(
+        enabled=bool(value.get("enabled", False)),
+        messages=normalized_messages,
+        scroll_enabled=bool(value.get("scroll_enabled", False)),
+        link_url=str(value.get("link_url", "")) if value.get("link_url") is not None else "",
     )
 
 def get_tmdb_headers():
@@ -183,6 +198,7 @@ def update_drop_selection_settings(payload: DropSelectionSettings, db: Session =
 # PUT is restricted to admins via the main `router`.
 
 public_router = APIRouter(dependencies=[Depends(deps.get_current_user)])
+open_router = APIRouter()
 
 
 @public_router.get("/settings/onboarding", response_model=OnboardingSettings)
@@ -195,6 +211,41 @@ def get_onboarding_settings_public(db: Session = Depends(deps.get_db)):
 def update_onboarding_settings(payload: OnboardingSettings, db: Session = Depends(deps.get_db)):
     setting = update_setting(db, ONBOARDING_SETTINGS_KEY, {"always_play": payload.always_play})
     return OnboardingSettings(always_play=bool(setting.value.get("always_play", False)))
+
+
+# ── Notification Banner settings ─────────────────────────────────────────────
+@router.get("/settings/notification-banner", response_model=NotificationBannerSettings)
+def get_notification_banner_settings(db: Session = Depends(deps.get_db)):
+    setting = get_or_create_setting(db, NOTIFICATION_BANNER_SETTINGS_KEY, DEFAULT_NOTIFICATION_BANNER_SETTINGS)
+    return serialize_notification_banner_settings(setting.value)
+
+
+@router.put("/settings/notification-banner", response_model=NotificationBannerSettings)
+def update_notification_banner_settings(payload: NotificationBannerSettings, db: Session = Depends(deps.get_db)):
+    normalized_messages = [m.strip() for m in payload.messages if m.strip()]
+    setting = update_setting(
+        db,
+        NOTIFICATION_BANNER_SETTINGS_KEY,
+        {
+            "enabled": bool(payload.enabled),
+            "messages": normalized_messages,
+            "scroll_enabled": bool(payload.scroll_enabled),
+            "link_url": payload.link_url,
+        },
+    )
+    return serialize_notification_banner_settings(setting.value)
+
+
+@open_router.get("/settings/notification-banner/public", response_model=NotificationBannerSettings)
+def get_notification_banner_settings_public(db: Session = Depends(deps.get_db)):
+    setting = get_or_create_setting(db, NOTIFICATION_BANNER_SETTINGS_KEY, DEFAULT_NOTIFICATION_BANNER_SETTINGS)
+    return serialize_notification_banner_settings(setting.value)
+
+
+@open_router.get("/notification-banner", response_model=NotificationBannerSettings)
+def get_notification_banner_settings_public_alias(db: Session = Depends(deps.get_db)):
+    setting = get_or_create_setting(db, NOTIFICATION_BANNER_SETTINGS_KEY, DEFAULT_NOTIFICATION_BANNER_SETTINGS)
+    return serialize_notification_banner_settings(setting.value)
 
 @router.post("/reminders/weekend")
 async def send_weekend_reminder(db: Session = Depends(deps.get_db)):

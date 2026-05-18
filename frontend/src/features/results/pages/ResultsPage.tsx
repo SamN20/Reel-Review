@@ -4,6 +4,7 @@ import { Check, ChevronDown, Share2, Trophy } from "lucide-react";
 import axios from "axios";
 
 import { SiteHeader } from "../../../components/SiteHeader";
+import { NotificationBanner } from "../../../components/NotificationBanner";
 import { useAuth } from "../../../context/AuthContext";
 import {
   fetchResultsSummary,
@@ -111,6 +112,8 @@ export default function ResultsPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-red-600 selection:text-white pb-20 overflow-x-hidden">
       <SiteHeader />
+
+      <NotificationBanner />
 
       <main>
         <ResultsHero

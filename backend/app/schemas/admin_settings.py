@@ -27,3 +27,10 @@ class DropSelectionSettings(BaseModel):
 
 class OnboardingSettings(BaseModel):
     always_play: bool
+
+
+class NotificationBannerSettings(BaseModel):
+    enabled: bool
+    messages: list[str]
+    scroll_enabled: bool
+    link_url: str

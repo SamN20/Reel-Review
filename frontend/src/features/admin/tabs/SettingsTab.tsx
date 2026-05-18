@@ -20,6 +20,13 @@ type OnboardingSettings = {
   always_play: boolean;
 };
 
+type NotificationBannerSettings = {
+  enabled: boolean;
+  messages: string[];
+  scroll_enabled: boolean;
+  link_url: string;
+};
+
 type NumberFieldProps = {
   label: string;
   value: number;
@@ -84,6 +91,8 @@ export function SettingsTab() {
   const [settings, setSettings] = useState<LeaderboardSettings | null>(null);
   const [dropSettings, setDropSettings] = useState<DropSelectionSettings | null>(null);
   const [onboardingSettings, setOnboardingSettings] = useState<OnboardingSettings | null>(null);
+  const [bannerSettings, setBannerSettings] = useState<NotificationBannerSettings | null>(null);
+  const [bannerMessageDraft, setBannerMessageDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -93,14 +102,17 @@ export function SettingsTab() {
     try {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
-      const [res, dropRes, onboardingRes] = await Promise.all([
+      const [res, dropRes, onboardingRes, bannerRes] = await Promise.all([
         axios.get(`${API_URL}/api/v1/admin/settings/leaderboards`, { headers }),
         axios.get(`${API_URL}/api/v1/admin/settings/drop-selection`, { headers }),
         axios.get(`${API_URL}/api/v1/admin/settings/onboarding`, { headers }),
+        axios.get(`${API_URL}/api/v1/admin/settings/notification-banner`, { headers }),
       ]);
       setSettings(res.data);
       setDropSettings(dropRes.data);
       setOnboardingSettings(onboardingRes.data);
+      setBannerSettings(bannerRes.data);
+      setBannerMessageDraft((bannerRes.data?.messages || []).join("\n"));
       setError("");
     } catch (err) {
       console.error(err);
@@ -135,20 +147,31 @@ export function SettingsTab() {
   };
 
   const handleSave = async () => {
-    if (!settings || !dropSettings || !onboardingSettings) return;
+    if (!settings || !dropSettings || !onboardingSettings || !bannerSettings) return;
     setSaving(true);
     setSuccess("");
     try {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
-      const [res, dropRes, onboardingRes] = await Promise.all([
+      const bannerMessages = bannerMessageDraft
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const bannerPayload = {
+        ...bannerSettings,
+        messages: bannerMessages,
+      };
+      const [res, dropRes, onboardingRes, bannerRes] = await Promise.all([
         axios.put(`${API_URL}/api/v1/admin/settings/leaderboards`, settings, { headers }),
         axios.put(`${API_URL}/api/v1/admin/settings/drop-selection`, dropSettings, { headers }),
         axios.put(`${API_URL}/api/v1/admin/settings/onboarding`, onboardingSettings, { headers }),
+        axios.put(`${API_URL}/api/v1/admin/settings/notification-banner`, bannerPayload, { headers }),
       ]);
       setSettings(res.data);
       setDropSettings(dropRes.data);
       setOnboardingSettings(onboardingRes.data);
+      setBannerSettings(bannerRes.data);
+      setBannerMessageDraft((bannerRes.data?.messages || []).join("\n"));
       setSuccess("Settings saved.");
       setError("");
     } catch (err) {
@@ -179,7 +202,7 @@ export function SettingsTab() {
         </div>
       )}
 
-      {settings && dropSettings && onboardingSettings && (
+      {settings && dropSettings && onboardingSettings && bannerSettings && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-6">
           <div>
             <h3 className="text-lg font-semibold">Leaderboard Minimum Ratings</h3>
@@ -232,6 +255,51 @@ export function SettingsTab() {
             checked={onboardingSettings.always_play}
             onChange={(v) => setOnboardingSettings({ always_play: v })}
           />
+
+          <div className="h-px bg-zinc-800" />
+
+          <div>
+            <h3 className="text-lg font-semibold">Notification Banner</h3>
+            <p className="text-sm text-zinc-400 mt-1">
+              Display a short announcement banner across the site (home, profiles, leaderboards, results).
+            </p>
+          </div>
+
+          <ToggleField
+            label="Enable banner"
+            description="When enabled, the banner appears on supported pages."
+            checked={bannerSettings.enabled}
+            onChange={(v) => setBannerSettings({ ...bannerSettings, enabled: v })}
+          />
+
+          <ToggleField
+            label="Scroll multiple messages"
+            description="When enabled, banner messages scroll horizontally if more than one is provided."
+            checked={bannerSettings.scroll_enabled}
+            onChange={(v) => setBannerSettings({ ...bannerSettings, scroll_enabled: v })}
+          />
+
+          <label className="flex flex-col gap-2 text-sm text-zinc-300">
+            Click-through URL
+            <input
+              type="text"
+              value={bannerSettings.link_url}
+              onChange={(e) => setBannerSettings({ ...bannerSettings, link_url: e.target.value })}
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white"
+              placeholder="/leaderboards or https://example.com"
+            />
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm text-zinc-300">
+            Messages (one per line)
+            <textarea
+              rows={3}
+              value={bannerMessageDraft}
+              onChange={(e) => setBannerMessageDraft(e.target.value)}
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white"
+              placeholder="Type a short announcement..."
+            />
+          </label>
 
           <div className="flex items-center justify-end">
             <button

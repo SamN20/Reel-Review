@@ -8,6 +8,7 @@ import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { LoginScreen } from "../components/LoginScreen";
+import { NotificationBanner } from "../components/NotificationBanner";
 import { usePageMeta } from "../lib/seo";
 
 interface CurrentDrop {
@@ -147,7 +148,12 @@ export default function Home() {
   }
 
   if (!user) {
-    return <LoginScreen pastDrops={pastDrops} onLogin={login} />;
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-50">
+        <NotificationBanner />
+        <LoginScreen pastDrops={pastDrops} onLogin={login} />
+      </div>
+    );
   }
 
   return (
@@ -155,6 +161,7 @@ export default function Home() {
       <SiteHeader activeSection="current-week" />
 
       <main className="flex-1 pb-16">
+        <NotificationBanner />
         <HeroSection
           currentDrop={currentDrop}
           canManageDrops={Boolean(user?.is_admin)}

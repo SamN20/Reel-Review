@@ -8,6 +8,7 @@ import { CrewCard, type LBCrew } from "../features/leaderboards/components/CrewC
 import { DivisiveCard, type LBDivisive } from "../features/leaderboards/components/DivisiveCard";
 import { CategoryMovieCard, type LBCategoryMovie } from "../features/leaderboards/components/CategoryMovieCard";
 import { EmptyState } from "../features/leaderboards/components/EmptyState";
+import { NotificationBanner } from "../components/NotificationBanner";
 
 interface CategoryLeaderboardsData {
   story: LBCategoryMovie[];
@@ -65,6 +66,8 @@ export default function LeaderboardsPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col font-sans">
       <SiteHeader activeSection="leaderboards" />
+
+      <NotificationBanner />
       
       {/* Hero Section */}
       <div className="relative pt-32 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden flex-shrink-0">
