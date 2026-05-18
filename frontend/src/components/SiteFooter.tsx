@@ -19,9 +19,6 @@ export function SiteFooter() {
               <span className="text-sm font-black bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent hover:from-green-500 hover:to-green-700 transition-all duration-300 normal-case font-sans">byNolo</span>
             </span>
           </button>
-          <p className="text-zinc-500 text-xs text-center md:text-left max-w-xs leading-relaxed">
-            Your cinematic dashboard for synchronized weekly movie drops, community ratings, and spoiler-filled reviews.
-          </p>
         </div>
 
         {/* Navigation & Policies Column */}
