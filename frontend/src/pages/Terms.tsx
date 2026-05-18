@@ -35,7 +35,7 @@ export default function Terms() {
             Terms of Use
           </h1>
           <p className="text-zinc-500 text-xs uppercase tracking-wider mt-2 font-bold">
-            Last Updated: May 2026 • Version 1.2
+            Last Updated: May 2026 • Version 1.3
           </p>
         </div>
       </div>
@@ -111,6 +111,9 @@ export default function Terms() {
                 <li>
                   <strong className="text-zinc-200">System Integrity:</strong> Manipulating ratings, creating multiple mock accounts to spam low ratings (review bombing), or scripting submissions is an abuse of the system.
                 </li>
+                <li>
+                  <strong className="text-zinc-200">Invite & Referral Abuse:</strong> Creating fake accounts, self-referring, or otherwise attempting to falsify invite attribution or referral activity is prohibited.
+                </li>
               </ul>
             </section>
 
@@ -123,11 +126,11 @@ export default function Terms() {
               <p className="text-sm">
                 You retain ownership of any text reviews or ratings you publish on the platform. However, by
                 publishing content on Reel Review, you grant us a worldwide, royalty-free, perpetual license to
-                host, display, distribute, analyze, and surface your reviews in aggregations, leaderboards, and historical shelves.
+                host, display, distribute, analyze, and surface your reviews, ballots, movie requests, replies, and related contributions in aggregations, leaderboards, historical shelves, and community features.
               </p>
               <p className="text-sm text-zinc-400">
                 You are solely responsible for your own content. We operate automatic moderation workflows and reserve
-                the absolute right (but assume no obligation) to hide, delete, or flag any reviews or replies that violate our guidelines.
+                the absolute right (but assume no obligation) to hide, delete, flag, or limit access to reviews, replies, requests, or other submissions that violate our guidelines.
               </p>
             </section>
 
@@ -144,6 +147,9 @@ export default function Terms() {
               <p className="text-sm text-zinc-400">
                 Movie metadata, backdrops, poster artwork, director summaries, and streaming provider information are ingested
                 from third-party databases, including TMDB and JustWatch, and are protected under their respective trademarks and copyrights.
+              </p>
+              <p className="text-sm text-zinc-400">
+                External destinations surfaced through the product, including trailers, watch-provider links, notification preference pages, or identity-management pages, remain subject to the terms and policies of those third-party services.
               </p>
             </section>
 

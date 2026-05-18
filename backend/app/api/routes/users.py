@@ -6,7 +6,9 @@ from typing import List
 from app.api import deps
 from app.models.user import User
 from app.models.rating import Rating
-from app.schemas.user import UserPreferencesUpdate, UserProfileOut, UserOut
+from app.schemas.user import UserPreferencesUpdate, UserProfileOut, UserOut, UserReferralSummaryOut
+from app.core.config import settings
+from app.services.referrals import ensure_user_invite_code
 from app.services.profile_visibility import apply_public_profile_rating_visibility
 
 router = APIRouter()
@@ -35,6 +37,16 @@ def serialize_profile(
         "average_score": round(average_score, 1),
         "recent_ratings": recent_ratings,
         "favorite_movies": favorite_movies,
+    }
+
+
+def serialize_referral_user(user: User) -> dict:
+    return {
+        "id": user.id,
+        "username": user.username,
+        "display_name": user.display_name,
+        "use_display_name": True if user.use_display_name is None else user.use_display_name,
+        "referral_attributed_at": user.referral_attributed_at,
     }
 
 @router.put("/me/preferences", response_model=UserOut)
@@ -81,3 +93,29 @@ def get_user_profile_by_username(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Profile is private")
             
     return serialize_profile(db, user, is_public_view=True)
+
+
+@router.get("/me/referral", response_model=UserReferralSummaryOut)
+def get_my_referral_summary(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    ensure_user_invite_code(db, current_user)
+    db.commit()
+    db.refresh(current_user)
+
+    referred_users = (
+        db.query(User)
+        .filter(User.referred_by_user_id == current_user.id)
+        .order_by(User.referral_attributed_at.desc(), User.id.desc())
+        .all()
+    )
+
+    frontend_url = settings.FRONTEND_URL.rstrip("/")
+    invite_url = f"{frontend_url}/join/{current_user.invite_code}"
+    return {
+        "invite_code": current_user.invite_code,
+        "invite_url": invite_url,
+        "referral_count": len(referred_users),
+        "referred_users": [serialize_referral_user(user) for user in referred_users],
+    }

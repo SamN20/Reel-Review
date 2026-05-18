@@ -33,6 +33,21 @@ const profileResponse = {
   favorite_movies: [],
 };
 
+const referralResponse = {
+  invite_code: "INVITE123",
+  invite_url: "https://reelreview.example/join/INVITE123",
+  referral_count: 1,
+  referred_users: [
+    {
+      id: 22,
+      username: "friend",
+      display_name: "Friend",
+      use_display_name: true,
+      referral_attributed_at: "2026-05-17T12:00:00Z",
+    },
+  ],
+};
+
 describe("ProfilePage", () => {
   beforeEach(() => {
     vi.mocked(axios.get).mockReset();
@@ -62,6 +77,7 @@ describe("ProfilePage", () => {
     });
 
     expect(screen.queryByText(/Privacy Settings/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Invites/i)).not.toBeInTheDocument();
     expect(axios.get).toHaveBeenCalledWith(expect.stringContaining("/api/v1/users/by-username/jane/profile"), expect.any(Object));
   });
 
@@ -80,7 +96,13 @@ describe("ProfilePage", () => {
       updateUser,
     });
 
-    vi.mocked(axios.get).mockResolvedValue({ data: { ...profileResponse, username: "me" } });
+    vi.mocked(axios.get).mockImplementation((url) => {
+      if (String(url).includes("/api/v1/users/me/referral")) {
+        return Promise.resolve({ data: referralResponse });
+      }
+
+      return Promise.resolve({ data: { ...profileResponse, username: "me" } });
+    });
     vi.mocked(axios.put).mockResolvedValue({ data: {} });
 
     render(
@@ -93,6 +115,13 @@ describe("ProfilePage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /Invites/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Your Invite Link/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Friend/i).length).toBeGreaterThan(0);
     });
 
     await userEvent.click(screen.getByRole("button", { name: /Privacy Settings/i }));

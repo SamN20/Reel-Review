@@ -3,9 +3,10 @@ import { useMemo } from "react";
 interface LoginScreenProps {
   pastDrops: any[];
   onLogin: () => void;
+  inviteCode?: string | null;
 }
 
-export function LoginScreen({ pastDrops, onLogin }: LoginScreenProps) {
+export function LoginScreen({ pastDrops, onLogin, inviteCode }: LoginScreenProps) {
   // Safely extract and seamlessly duplicate posters so the grid is always densely populated
   const { posters, gridCols } = useMemo(() => {
     const valid = pastDrops
@@ -81,6 +82,11 @@ export function LoginScreen({ pastDrops, onLogin }: LoginScreenProps) {
 
       {/* Main UI */}
       <div className="relative z-10 text-center flex flex-col items-center">
+        {inviteCode && (
+          <div className="mb-6 inline-flex items-center rounded-full border border-red-500/30 bg-red-950/40 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-red-200 shadow-[0_0_30px_rgba(220,38,38,0.12)]">
+            You were invited to Reel Review
+          </div>
+        )}
         <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-4 text-white uppercase drop-shadow-[0_0_20px_rgba(0,0,0,1)]">
           Reel Review
         </h1>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useParams, useSearchParams } from "react-router-dom";
 import { HeroSection } from "../components/HeroSection";
 import { FilmShelf } from "../components/FilmShelf";
 import { CommunityDiscussions } from "../components/CommunityDiscussions";
@@ -10,6 +11,7 @@ import { LoadingScreen } from "../components/LoadingScreen";
 import { LoginScreen } from "../components/LoginScreen";
 import { NotificationBanner } from "../components/NotificationBanner";
 import { usePageMeta } from "../lib/seo";
+import { captureReferralInvite, getReferralCookieValue } from "../lib/referral";
 
 interface CurrentDrop {
   id: number;
@@ -25,6 +27,8 @@ interface CurrentDrop {
 
 export default function Home() {
   const { user, loading: authLoading, login } = useAuth();
+  const { inviteCode: routeInviteCode } = useParams<{ inviteCode?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize from cache if available to enable instant rendering without flash
   const cachedDataStr = localStorage.getItem("reelreview_home_cache");
@@ -40,6 +44,7 @@ export default function Home() {
   const [activeVoters, setActiveVoters] = useState<number>(cachedData?.activeVoters || 0);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [showLoader, setShowLoader] = useState(!cachedData);
+  const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
   const currentMovieTitle = currentDrop?.movie?.title;
@@ -55,6 +60,19 @@ export default function Home() {
       ? `This week's featured movie is ${currentMovieTitle}${currentMovieYear}. Rate it with the community, follow the live weekly drop, and catch up on past results in Reel Review.`
       : "A cinematic, community-driven weekly movie club where the byNolo community rates one featured film together.",
   });
+
+  useEffect(() => {
+    const queryInviteCode = searchParams.get("invite");
+    const capturedInvite = captureReferralInvite(routeInviteCode ?? queryInviteCode);
+    const storedInvite = getReferralCookieValue();
+    setActiveInviteCode(capturedInvite ?? storedInvite);
+
+    if (queryInviteCode) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("invite");
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [routeInviteCode, searchParams, setSearchParams]);
 
   useEffect(() => {
     const startTime = Date.now();
@@ -150,8 +168,7 @@ export default function Home() {
   if (!user) {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-50">
-        <NotificationBanner />
-        <LoginScreen pastDrops={pastDrops} onLogin={login} />
+        <LoginScreen pastDrops={pastDrops} onLogin={login} inviteCode={activeInviteCode} />
       </div>
     );
   }

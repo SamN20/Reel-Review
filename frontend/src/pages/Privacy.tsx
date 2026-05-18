@@ -37,7 +37,7 @@ export default function Privacy() {
             Privacy Policy
           </h1>
           <p className="text-zinc-500 text-xs uppercase tracking-wider mt-2 font-bold">
-            Last Updated: May 2026 • Version 1.2
+            Last Updated: May 2026 • Version 1.3
           </p>
         </div>
       </div>
@@ -91,9 +91,11 @@ export default function Privacy() {
                 render the interactive components:
               </p>
               <ul className="list-disc pl-5 space-y-2 text-sm text-zinc-400">
-                <li><strong className="text-zinc-200">Account Details:</strong> Your username, email address, and avatar references.</li>
+                <li><strong className="text-zinc-200">Account Details:</strong> Your username, email address, display name preferences, public profile preferences, leaderboard visibility preferences, and avatar references.</li>
                 <li><strong className="text-zinc-200">Ratings & Reviews:</strong> The overall and subcategory scores (story, performances, visuals, sound, enjoyment, rewatchability) and review text you submit for weekly film drops.</li>
-                <li><strong className="text-zinc-200">Interactions:</strong> Review likes, reply structures, reports, and flags.</li>
+                <li><strong className="text-zinc-200">Community Inputs:</strong> Movie requests, request support actions, weekly drop ballots or rankings, and related participation history.</li>
+                <li><strong className="text-zinc-200">Interactions:</strong> Review likes, reply structures, reports, flags, and profile visibility settings.</li>
+                <li><strong className="text-zinc-200">Referral Data:</strong> Your invite code, invite attribution relationships, and a short-lived referral cookie used to remember which invite link a visitor used before signing in.</li>
                 <li><strong className="text-zinc-200">Platform Analytics:</strong> We use privacy-first, cookie-less analytics (via Cloudflare) to monitor broad server traffic and page performance. This data is fully anonymized.</li>
               </ul>
             </section>
@@ -111,6 +113,9 @@ export default function Privacy() {
                 We receive a secure cryptographic payload and token that identifies your unique KeyN identity. 
                 We never store or have access to your passwords or private security questions. Your credentials stay strictly isolated within KeyN's auth ecosystem.
               </p>
+              <p className="text-sm text-zinc-400">
+                We may also store a local authentication token in your browser so you remain signed in between visits, along with a referral cookie when you arrive through an invite link.
+              </p>
             </section>
 
             {/* Section 3 */}
@@ -126,6 +131,8 @@ export default function Privacy() {
                 <li>Calculating aggregate community film stats (score averages, ranking index, sentiment charts).</li>
                 <li>Populating the discussions board (Spoiler-Free threads and the Spoiler Zone).</li>
                 <li>Identifying your matching community taste peers (Perfect Matches, Closest Matches, Polar Opposites) and building Leaderboard profiles.</li>
+                <li>Powering weekly drop scheduling, ballot counting, movie request workflows, and member referral attribution.</li>
+                <li>Displaying public profiles, public leaderboards, and referral summaries according to the privacy settings you choose.</li>
                 <li>We do <strong className="text-red-500 font-bold">NOT</strong> sell your personal data, reviews, or browsing habits to advertisers, data brokers, or third-party syndications.</li>
               </ul>
             </section>
@@ -138,6 +145,9 @@ export default function Privacy() {
               </h2>
               <p className="text-sm">
                 Our application implements strict technical guardrails to prevent data leaks. Your auth token is securely stored in local storage and sent via encrypted HTTPS transport layers. Access to the administration panel is locked behind multi-tier authorization layers.
+              </p>
+              <p className="text-sm text-zinc-400">
+                Referral cookies are limited to invite attribution, store only an invite code rather than profile details, and are configured to expire automatically after a limited period.
               </p>
             </section>
 
@@ -152,6 +162,9 @@ export default function Privacy() {
               </p>
               <p className="text-sm text-zinc-400">
                 Additionally, you can toggle your review posts to <strong className="text-zinc-200">"Post Anonymously"</strong> at any time to obscure your real identity on the community takes feed.
+              </p>
+              <p className="text-sm text-zinc-400">
+                You can also control whether your profile is public and whether you appear on leaderboards. Referral relationships and public profile displays are still subject to data retained in our operational records until deletion is processed.
               </p>
             </section>
 

@@ -16,9 +16,10 @@ from app.models.rating import Rating
 from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
 from app.models.movie_request import MovieRequest
-from app.schemas.user import UserOut, UserUpdate
+from app.schemas.user import UserOut, UserUpdate, AdminReferralSummaryOut
 from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings, OnboardingSettings, NotificationBannerSettings
 from app.core.config import settings
+from app.services.referrals import ensure_user_invite_code
 from app.services.admin_settings import (
     DEFAULT_DROP_SELECTION_SETTINGS,
     DEFAULT_LEADERBOARD_SETTINGS,
@@ -698,6 +699,8 @@ def serialize_admin_user(user: User) -> dict[str, Any]:
         "username": user.username,
         "email": user.email,
         "display_name": user.display_name,
+        "invite_code": user.invite_code,
+        "referred_by_user_id": user.referred_by_user_id,
         "use_display_name": True if user.use_display_name is None else user.use_display_name,
         "show_on_leaderboard": True if user.show_on_leaderboard is None else user.show_on_leaderboard,
         "public_profile": False if user.public_profile is None else user.public_profile,
@@ -730,6 +733,59 @@ def update_user_status(user_id: int, user_update: UserUpdate, current_admin: Use
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get("/referrals", response_model=AdminReferralSummaryOut)
+def get_referral_admin_summary(db: Session = Depends(deps.get_db)):
+    inviters = db.query(User).order_by(User.id.asc()).all()
+    inviter_rows: list[dict[str, Any]] = []
+    for inviter in inviters:
+        ensure_user_invite_code(db, inviter)
+        referral_count = db.query(User).filter(User.referred_by_user_id == inviter.id).count()
+        if referral_count == 0:
+            continue
+        inviter_rows.append(
+            {
+                "inviter_user_id": inviter.id,
+                "inviter_username": inviter.username,
+                "inviter_display_name": inviter.display_name,
+                "invite_code": inviter.invite_code,
+                "referral_count": referral_count,
+            }
+        )
+
+    recent_signups = (
+        db.query(User)
+        .filter(User.referred_by_user_id.isnot(None), User.referral_attributed_at.isnot(None))
+        .order_by(User.referral_attributed_at.desc(), User.id.desc())
+        .limit(25)
+        .all()
+    )
+
+    db.commit()
+
+    recent_rows: list[dict[str, Any]] = []
+    for referred_user in recent_signups:
+        inviter = referred_user.referred_by
+        if inviter is None:
+            continue
+        recent_rows.append(
+            {
+                "referred_user_id": referred_user.id,
+                "referred_username": referred_user.username,
+                "referred_display_name": referred_user.display_name,
+                "inviter_user_id": inviter.id,
+                "inviter_username": inviter.username,
+                "inviter_display_name": inviter.display_name,
+                "referral_attributed_at": referred_user.referral_attributed_at,
+            }
+        )
+
+    inviter_rows.sort(key=lambda row: (-row["referral_count"], row["inviter_username"]))
+    return {
+        "inviters": inviter_rows,
+        "recent_signups": recent_rows,
+    }
 
 @router.get("/moderation/flagged")
 def get_flagged_content(db: Session = Depends(deps.get_db)):

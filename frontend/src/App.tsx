@@ -56,6 +56,8 @@ function RouteMetaManager() {
     title = "Attribution | Reel Review";
   } else if (pathname.startsWith("/auth/callback")) {
     title = "Signing In | Reel Review";
+  } else if (pathname.startsWith("/join/")) {
+    title = "Join Reel Review";
   }
 
   usePageMeta({ title });
@@ -70,6 +72,7 @@ function App() {
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/join/:inviteCode" element={<Home />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/vote" element={<Vote />} />
           <Route path="/vote/:id" element={<Vote />} />

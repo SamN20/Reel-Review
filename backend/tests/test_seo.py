@@ -201,3 +201,25 @@ def test_public_profile_preview_hides_active_drop_rating(seo_client: TestClient,
     assert "1 ratings and an average score of 85.0/100" in response.text
     assert "Current Week Secret" not in response.text
     assert 'content="https://image.tmdb.org/t/p/w1280/archive-favorite.jpg"' in response.text
+
+
+def test_join_invite_preview_uses_inviter_name(seo_client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(settings, "FRONTEND_URL", "https://reelreview.example")
+
+    inviter = User(
+        keyn_id="invite-preview",
+        username="moviebuff",
+        display_name="Movie Buff",
+        use_display_name=True,
+        email="moviebuff@example.com",
+        invite_code="JOINME1234",
+    )
+    db.add(inviter)
+    db.commit()
+
+    response = seo_client.get("/seo/render?path=/join/JOINME1234")
+
+    assert response.status_code == 200
+    assert "Movie Buff invited you to join Reel Review" in response.text
+    assert "cinematic community platform" in response.text
+    assert 'content="https://reelreview.example/join/JOINME1234"' in response.text

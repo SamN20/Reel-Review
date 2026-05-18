@@ -14,6 +14,7 @@ from app.models.weekly_drop import WeeklyDrop
 from app.services.drop_scheduler import DropSchedulerService
 from app.services.movie_metadata import serialize_movie
 from app.services.profile_visibility import apply_public_profile_rating_visibility
+from app.services.referrals import resolve_inviter_by_code
 from app.services.results_service import ResultsService
 
 SITE_NAME = "Reel Review"
@@ -62,6 +63,12 @@ def build_seo_payload(db: Session, path: str) -> SeoPayload:
         username = normalized_path.removeprefix("/p/").strip("/")
         if username:
             return build_profile_payload(db, username)
+        return default_payload(normalized_path)
+
+    if normalized_path.startswith("/join/"):
+        invite_code = normalized_path.removeprefix("/join/").strip("/")
+        if invite_code:
+            return build_join_invite_payload(db, invite_code)
         return default_payload(normalized_path)
 
     return default_payload(normalized_path)
@@ -234,6 +241,34 @@ def build_profile_payload(db: Session, username: str) -> SeoPayload:
         canonical_url=canonical_url,
         image_url=image_url,
         type="profile",
+    )
+
+
+def build_join_invite_payload(db: Session, invite_code: str) -> SeoPayload:
+    canonical_url = absolute_url(f"/join/{invite_code}")
+    inviter = resolve_inviter_by_code(db, invite_code)
+    home_payload = build_home_payload(db)
+
+    if inviter:
+        inviter_name = preferred_profile_name(inviter)
+        return SeoPayload(
+            title=f"{inviter_name} invited you to join {SITE_NAME}",
+            description=truncate_description(
+                f"{inviter_name} invited you to join Reel Review, a cinematic community platform "
+                f"where members rate a featured weekly movie, compare scores, and explore the Film Shelf together."
+            ),
+            canonical_url=canonical_url,
+            image_url=home_payload.image_url,
+        )
+
+    return SeoPayload(
+        title=f"Join {SITE_NAME}",
+        description=truncate_description(
+            "Join Reel Review, a cinematic community platform where members rate a featured weekly movie, "
+            "compare scores, and explore a living Film Shelf together."
+        ),
+        canonical_url=canonical_url,
+        image_url=home_payload.image_url,
     )
 
 

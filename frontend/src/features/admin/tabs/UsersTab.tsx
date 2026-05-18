@@ -12,6 +12,31 @@ interface User {
   is_admin: boolean;
   is_active: boolean;
   created_at: string;
+  invite_code?: string | null;
+  referred_by_user_id?: number | null;
+}
+
+interface ReferralLeaderboardRow {
+  inviter_user_id: number;
+  inviter_username: string;
+  inviter_display_name: string | null;
+  invite_code: string;
+  referral_count: number;
+}
+
+interface ReferralRecentRow {
+  referred_user_id: number;
+  referred_username: string;
+  referred_display_name: string | null;
+  inviter_user_id: number;
+  inviter_username: string;
+  inviter_display_name: string | null;
+  referral_attributed_at: string;
+}
+
+interface ReferralSummary {
+  inviters: ReferralLeaderboardRow[];
+  recent_signups: ReferralRecentRow[];
 }
 
 export function UsersTab() {
@@ -20,6 +45,7 @@ export function UsersTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [referralSummary, setReferralSummary] = useState<ReferralSummary | null>(null);
   const scrollProps = useDraggableScroll<HTMLDivElement>();
 
   const fetchUsers = async () => {
@@ -29,6 +55,10 @@ export function UsersTab() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(res.data);
+      const referralRes = await axios.get(`${API_URL}/api/v1/admin/referrals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setReferralSummary(referralRes.data);
       setError("");
     } catch (err: any) {
       console.error(err);
@@ -105,6 +135,45 @@ export function UsersTab() {
         </div>
       )}
 
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+          <div className="border-b border-zinc-800 px-6 py-4">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-zinc-500">Top Inviters</h3>
+          </div>
+          <div className="divide-y divide-zinc-800">
+            {referralSummary?.inviters.length ? referralSummary.inviters.map((row) => (
+              <div key={row.inviter_user_id} className="flex items-center justify-between gap-4 px-6 py-4">
+                <div>
+                  <p className="font-medium text-white">{row.inviter_display_name || row.inviter_username}</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">@{row.inviter_username} · {row.invite_code}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-red-400">{row.referral_count}</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Referrals</p>
+                </div>
+              </div>
+            )) : <div className="px-6 py-8 text-sm text-zinc-500">No referrals have been attributed yet.</div>}
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+          <div className="border-b border-zinc-800 px-6 py-4">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-zinc-500">Recent Referred Signups</h3>
+          </div>
+          <div className="divide-y divide-zinc-800">
+            {referralSummary?.recent_signups.length ? referralSummary.recent_signups.map((row) => (
+              <div key={row.referred_user_id} className="px-6 py-4">
+                <p className="font-medium text-white">{row.referred_display_name || row.referred_username}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.2em] text-zinc-500">
+                  @{row.referred_username} joined via @{row.inviter_username}
+                </p>
+                <p className="mt-2 text-xs text-zinc-500">{new Date(row.referral_attributed_at).toLocaleString()}</p>
+              </div>
+            )) : <div className="px-6 py-8 text-sm text-zinc-500">No referred signups yet.</div>}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
         <div
           {...scrollProps}
@@ -115,6 +184,7 @@ export function UsersTab() {
               <tr>
                 <th className="px-6 py-4 font-medium">User</th>
                 <th className="px-6 py-4 font-medium">Joined</th>
+                <th className="px-6 py-4 font-medium">Invite</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Role</th>
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
@@ -139,6 +209,10 @@ export function UsersTab() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {new Date(user.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-zinc-500">
+                      <div>{user.invite_code || "—"}</div>
+                      <div>{user.referred_by_user_id ? `via #${user.referred_by_user_id}` : "Direct"}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -192,7 +266,7 @@ export function UsersTab() {
               ) : (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-6 py-8 text-center text-zinc-500"
                   >
                     No users found matching "{searchQuery}"

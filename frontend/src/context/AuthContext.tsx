@@ -7,12 +7,15 @@ import {
   type ReactNode,
 } from "react";
 import axios from "axios";
+import { getReferralCookieValue, isValidInviteCode } from "../lib/referral";
 
 interface User {
   id: number;
   username: string;
   email: string | null;
   display_name: string | null;
+  invite_code?: string | null;
+  referred_by_user_id?: number | null;
   use_display_name: boolean;
   show_on_leaderboard: boolean;
   public_profile: boolean;
@@ -64,7 +67,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/v1/auth/login-url`);
+      const invite = getReferralCookieValue();
+      const response = await axios.get(`${API_URL}/api/v1/auth/login-url`, {
+        params: isValidInviteCode(invite) ? { invite } : undefined,
+      });
       // Redirect user to KeyN
       window.location.href = response.data.url;
     } catch (error) {
@@ -76,8 +82,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async (code: string) => {
       setLoading(true);
       try {
+        const state = new URLSearchParams(window.location.search).get("state");
         const response = await axios.post(`${API_URL}/api/v1/auth/callback`, {
           code,
+          state,
         });
         const { access_token } = response.data;
         localStorage.setItem("token", access_token);

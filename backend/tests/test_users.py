@@ -9,6 +9,7 @@ from app.models.movie import Movie
 from app.models.rating import Rating
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
+from app.services.referrals import ensure_user_invite_code
 
 @pytest.fixture
 def test_client(db: Session):
@@ -208,3 +209,34 @@ def test_private_profile_owner_still_sees_active_drop_ratings(test_client, db: S
     assert data["total_votes"] == 1
     assert data["average_score"] == 88.0
     assert [item["movie"]["title"] for item in data["recent_ratings"]] == ["Owner Current Drop Movie"]
+
+
+def test_get_my_referral_summary(test_client, db: Session):
+    inviter = db.query(User).filter_by(username="public_tester").first()
+    ensure_user_invite_code(db, inviter)
+    db.commit()
+    db.refresh(inviter)
+
+    referred = User(
+        keyn_id="777777",
+        username="new_friend",
+        email="new_friend@example.com",
+        referred_by_user_id=inviter.id,
+    )
+    db.add(referred)
+    db.commit()
+
+    def override_get_current_user():
+        return inviter
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+    response = test_client.get("/api/v1/users/me/referral")
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["invite_code"] == inviter.invite_code
+    assert data["referral_count"] == 1
+    assert data["referred_users"][0]["username"] == "new_friend"
