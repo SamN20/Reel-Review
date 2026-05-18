@@ -25,6 +25,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_KEYN_BASE_URL: ${VITE_KEYN_BASE_URL}
     restart: always
 
   proxy:

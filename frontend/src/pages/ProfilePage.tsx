@@ -4,7 +4,7 @@ import { Navigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
-import { Loader2, Settings, Star, Clock, Trophy } from "lucide-react";
+import { ExternalLink, Loader2, Settings, Star, Clock, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePageMeta } from "../lib/seo";
 
@@ -49,6 +49,10 @@ export default function ProfilePage() {
   const [savingSettings, setSavingSettings] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "";
+  const KEYN_BASE_URL = import.meta.env.VITE_KEYN_BASE_URL || "";
+  const keynProfileUrl = KEYN_BASE_URL
+    ? `${KEYN_BASE_URL.replace(/\/$/, "")}/profile/edit`
+    : "";
   const preferredName = profile?.use_display_name && profile?.display_name ? profile.display_name : profile?.username;
 
   usePageMeta({
@@ -151,11 +155,25 @@ export default function ProfilePage() {
               </div>
               
               <div className="flex-1 text-center md:text-left space-y-4">
-                <div>
-                  <h1 className="text-4xl font-black tracking-tight">{preferredName}</h1>
-                  <p className="text-zinc-400 text-sm tracking-widest uppercase mt-1">@{profile.username}</p>
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div>
+                    <h1 className="text-4xl font-black tracking-tight">{preferredName}</h1>
+                    <p className="text-zinc-400 text-sm tracking-widest uppercase mt-1">@{profile.username}</p>
+                  </div>
+
+                  {!isPublicView && keynProfileUrl && (
+                    <a
+                      href={keynProfileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-950/70 border border-zinc-800 text-sm font-semibold text-zinc-200 hover:text-white hover:border-zinc-700 transition-colors md:shrink-0"
+                    >
+                      <ExternalLink className="w-4 h-4 text-red-400" />
+                      Edit KeyN Profile
+                    </a>
+                  )}
                 </div>
-                
+
                 <div className="flex flex-wrap justify-center md:justify-start gap-6">
                   <div className="bg-zinc-950/50 rounded-lg px-4 py-3 border border-zinc-800/50 flex items-center gap-3">
                     <Trophy className="text-amber-400 w-5 h-5" />

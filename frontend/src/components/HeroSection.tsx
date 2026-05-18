@@ -77,33 +77,31 @@ function EmptyHero({ canManageDrops }: { canManageDrops: boolean }) {
       <div className="absolute inset-0 z-0 opacity-30 bg-[linear-gradient(135deg,transparent_0%,transparent_48%,rgba(255,255,255,0.03)_50%,transparent_52%,transparent_100%)] bg-[length:24px_24px]" />
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="max-w-3xl rounded-[1.75rem] border border-zinc-800 bg-zinc-950/75 p-6 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-8 md:p-10">
-          <span className="inline-flex items-center gap-2 rounded px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-zinc-200 bg-zinc-800 sm:text-xs">
-            Weekly Drop Pending
-          </span>
-          <h1 className="mt-5 text-[clamp(2.4rem,9vw,4.75rem)] font-black leading-[1.02] tracking-tighter text-white sm:mt-6">
-            No movie has been scheduled for the current week yet.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-            The site is live and your account is working, but the homepage needs an active weekly drop before it can feature a film here.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            {canManageDrops ? (
-              <button
-                onClick={() => navigate("/admin")}
-                className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-zinc-200 text-zinc-950 font-black tracking-wide rounded-lg transition-colors shadow-xl"
-              >
-                Set Up This Week's Drop
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate("/vote")}
-                className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-zinc-200 text-zinc-950 font-black tracking-wide rounded-lg transition-colors shadow-xl"
-              >
-                Check Voting Page
-              </button>
-            )}
-          </div>
+        <span className="inline-flex items-center gap-2 rounded px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-zinc-200 bg-zinc-800 sm:text-xs">
+          Weekly Drop Pending
+        </span>
+        <h1 className="mt-5 text-[clamp(2.4rem,9vw,4.75rem)] font-black leading-[1.02] tracking-tighter text-white sm:mt-6">
+          No movie has been scheduled for the current week yet.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+          The site is live and your account is working, but the homepage needs an active weekly drop before it can feature a film here.
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-4">
+          {canManageDrops ? (
+            <button
+              onClick={() => navigate("/admin")}
+              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-zinc-200 text-zinc-950 font-black tracking-wide rounded-lg transition-colors shadow-xl"
+            >
+              Set Up This Week's Drop
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate("/vote")}
+              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-zinc-200 text-zinc-950 font-black tracking-wide rounded-lg transition-colors shadow-xl"
+            >
+              Check Voting Page
+            </button>
+          )}
         </div>
       </div>
     </section>
