@@ -5,6 +5,7 @@ import { Navigate } from "react-router-dom";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteHeader } from "../components/SiteHeader";
 import { useAuth } from "../context/AuthContext";
+import { useDraggableScroll } from "../hooks/useDraggableScroll";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 
 type TmdbMovie = {
@@ -81,6 +82,7 @@ export default function RequestsPage() {
   const searchSequence = useRef(0);
   const tmdbSequence = useRef(0);
   const localOnlyBlockedUntil = useRef(0);
+  const searchScrollProps = useDraggableScroll<HTMLDivElement>();
 
   const fetchRequests = async () => {
     const data = await apiGet<MovieRequest[]>("/api/v1/movie-requests", true);
@@ -286,7 +288,10 @@ export default function RequestsPage() {
           </div>
 
           {searchResults.length ? (
-            <div className="hide-scrollbar -mx-4 flex gap-5 overflow-x-auto px-4 pb-6 scroll-smooth snap-x snap-mandatory">
+            <div
+              {...searchScrollProps}
+              className="hide-scrollbar -mx-4 flex gap-5 overflow-x-auto px-4 pb-6 scroll-smooth snap-x snap-mandatory cursor-grab active:cursor-grabbing"
+            >
               {searchResults.map((movie) => {
                 const image = imageUrl(movie.backdrop_path || movie.poster_path, movie.backdrop_path ? "w780" : "w342");
                 return (

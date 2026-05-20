@@ -8,7 +8,8 @@ export function useDraggableScroll<T extends HTMLElement>() {
     const [hasDragged, setHasDragged] = useState(false);
 
     const handleMouseDown = (e: MouseEvent) => {
-        if (!ref.current) return;
+        if (e.button !== 0 || !ref.current) return;
+        e.preventDefault();
         setIsDragging(true);
         setHasDragged(false);
         setStartX(e.pageX - ref.current.offsetLeft);
