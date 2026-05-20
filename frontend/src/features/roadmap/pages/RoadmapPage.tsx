@@ -59,8 +59,8 @@ export default function RoadmapPage() {
 
       <main className="flex-1">
         <section className="relative -mb-10 min-h-[58vh] overflow-hidden px-4 pt-28 md:px-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.22),transparent_34rem),radial-gradient(circle_at_top_right,rgba(0,120,178,0.12),transparent_28rem)]" />
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-zinc-950 via-zinc-950/85 to-transparent" />
+          <div className="absolute inset-0 bg-zinc-950 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.15),transparent_44rem),radial-gradient(circle_at_top_right,rgba(0,120,178,0.08),transparent_36rem)]" />
+          <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-zinc-950 via-zinc-950/90 to-transparent" />
           <div className="relative z-10 mx-auto flex min-h-[48vh] max-w-7xl flex-col justify-end pb-16">
             <div className="mb-5 flex w-fit items-center gap-2 rounded border border-red-500/30 bg-red-950/25 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-red-400">
               <Clapperboard size={13} />

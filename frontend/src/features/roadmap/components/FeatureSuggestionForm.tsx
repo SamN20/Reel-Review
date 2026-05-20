@@ -49,7 +49,7 @@ export function FeatureSuggestionForm({ signedIn, onLogin }: FeatureSuggestionFo
 
   if (!signedIn) {
     return (
-      <div className="relative overflow-hidden border-l border-zinc-800 bg-zinc-950/40 p-6">
+      <div className="border-l border-zinc-800 bg-zinc-950/40 p-6">
         <div>
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg border border-red-500/30 bg-red-950/25 text-red-300">
             <Lightbulb size={22} />
@@ -61,7 +61,7 @@ export function FeatureSuggestionForm({ signedIn, onLogin }: FeatureSuggestionFo
           <button
             type="button"
             onClick={onLogin}
-            className="mt-6 inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-red-700"
+            className="mt-6 inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-red-700 active:scale-[0.98]"
           >
             Sign in to suggest
           </button>
@@ -77,7 +77,7 @@ export function FeatureSuggestionForm({ signedIn, onLogin }: FeatureSuggestionFo
           <p className="text-xs font-black uppercase tracking-widest text-red-500">Feature Suggestions</p>
           <h2 className="mt-2 text-2xl font-black tracking-tighter text-white">Send an idea to the queue.</h2>
         </div>
-        <div className="hidden h-11 w-11 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-red-400 sm:flex">
+        <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-red-400 sm:flex">
           <Lightbulb size={20} />
         </div>
       </div>
@@ -89,7 +89,7 @@ export function FeatureSuggestionForm({ signedIn, onLogin }: FeatureSuggestionFo
             value={title}
             maxLength={120}
             onChange={(event) => setTitle(event.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none transition-colors focus:border-red-500"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none transition-colors focus:border-red-500 focus:ring-1 focus:ring-red-500/50"
             placeholder="What should Reel Review add next?"
             required
           />
@@ -103,7 +103,7 @@ export function FeatureSuggestionForm({ signedIn, onLogin }: FeatureSuggestionFo
             value={description}
             maxLength={1200}
             onChange={(event) => setDescription(event.target.value)}
-            className="min-h-32 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none transition-colors focus:border-red-500"
+            className="min-h-32 w-full resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none transition-colors focus:border-red-500 focus:ring-1 focus:ring-red-500/50"
             placeholder="What problem would this solve? What should it feel like?"
           />
         </label>
@@ -123,7 +123,7 @@ export function FeatureSuggestionForm({ signedIn, onLogin }: FeatureSuggestionFo
       <button
         type="submit"
         disabled={submitting}
-        className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-3 text-sm font-black text-white transition-all duration-300 hover:bg-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Send size={16} />
         {submitting ? "Sending..." : "Submit Suggestion"}
