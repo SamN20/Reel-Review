@@ -10,6 +10,7 @@ import LeaderboardsPage from "./pages/LeaderboardsPage";
 import DiscussionsPage from "./pages/DiscussionsPage";
 import RequestsPage from "./pages/RequestsPage";
 import Results from "./features/results/pages/ResultsPage";
+import RoadmapPage from "./features/roadmap/pages/RoadmapPage";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Attribution from "./pages/Attribution";
@@ -40,6 +41,8 @@ function RouteMetaManager() {
     title = "Discussions | Reel Review";
   } else if (pathname.startsWith("/requests")) {
     title = "Movie Requests | Reel Review";
+  } else if (pathname.startsWith("/roadmap")) {
+    title = "Roadmap | Reel Review";
   } else if (pathname.startsWith("/admin")) {
     title = "Admin Dashboard | Reel Review";
   } else if (pathname.startsWith("/profile") || pathname.startsWith("/p/")) {
@@ -82,6 +85,7 @@ function App() {
           <Route path="/leaderboards" element={<LeaderboardsPage />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
           <Route path="/requests" element={<RequestsPage />} />
+          <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/p/:username" element={<ProfilePage />} />

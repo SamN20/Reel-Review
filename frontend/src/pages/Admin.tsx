@@ -10,6 +10,7 @@ import { UsersTab } from "../features/admin/tabs/UsersTab";
 import { ModerationTab } from "../features/admin/tabs/ModerationTab";
 import { MovieRequestsTab } from "../features/admin/tabs/MovieRequestsTab";
 import { SettingsTab } from "../features/admin/tabs/SettingsTab";
+import { RoadmapTab } from "../features/admin/tabs/RoadmapTab";
 
 export default function Admin() {
   const { user, loading } = useAuth();
@@ -89,6 +90,12 @@ export default function Admin() {
             Movie Requests
           </button>
           <button
+            onClick={() => handleTabChange("roadmap")}
+            className={`text-left px-4 py-2 rounded-lg transition-colors ${activeTab === "roadmap" ? "bg-red-600 text-white" : "text-zinc-400 hover:bg-zinc-800"}`}
+          >
+            Roadmap
+          </button>
+          <button
             onClick={() => handleTabChange("users")}
             className={`text-left px-4 py-2 rounded-lg transition-colors ${activeTab === "users" ? "bg-red-600 text-white" : "text-zinc-400 hover:bg-zinc-800"}`}
           >
@@ -151,6 +158,7 @@ export default function Admin() {
         {activeTab === "movies" && <MoviesTab />}
         {activeTab === "drops" && <DropsTab />}
         {activeTab === "requests" && <MovieRequestsTab />}
+        {activeTab === "roadmap" && <RoadmapTab />}
         {activeTab === "users" && <UsersTab />}
         {activeTab === "moderation" && <ModerationTab />}
         {activeTab === "settings" && <SettingsTab />}

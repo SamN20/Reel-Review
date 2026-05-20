@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.routes import admin, archive, auth, drops, movie_requests, ratings, results, search, users, leaderboards, movies
+from app.api.routes import admin, archive, auth, drops, movie_requests, ratings, results, search, users, leaderboards, movies, roadmap
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -16,3 +16,6 @@ api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(movie_requests.router, prefix="/movie-requests", tags=["movie-requests"])
 api_router.include_router(leaderboards.router, prefix="/leaderboards", tags=["leaderboards"])
 api_router.include_router(movies.router, prefix="/movies", tags=["movies"])
+api_router.include_router(roadmap.router, prefix="/roadmap", tags=["roadmap"])
+api_router.include_router(roadmap.suggestions_router, prefix="/feature-suggestions", tags=["feature-suggestions"])
+api_router.include_router(roadmap.admin_router, prefix="/admin", tags=["admin"])

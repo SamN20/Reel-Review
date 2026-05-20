@@ -40,6 +40,10 @@ vi.mock("./features/results/pages/ResultsPage", () => ({
   default: () => <div>Results Page</div>,
 }));
 
+vi.mock("./features/roadmap/pages/RoadmapPage", () => ({
+  default: () => <div>Roadmap Page</div>,
+}));
+
 test("renders the home route", () => {
   render(<App />);
   expect(screen.getByText(/Home Page/i)).toBeInTheDocument();

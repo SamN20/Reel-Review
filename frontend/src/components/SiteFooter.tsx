@@ -35,6 +35,9 @@ export function SiteFooter() {
           <button onClick={() => navigate("/discussions")} className="hover:text-white transition-colors">
             Discussions
           </button>
+          <button onClick={() => navigate("/roadmap")} className="hover:text-white transition-colors">
+            Roadmap
+          </button>
           <span className="hidden md:inline text-zinc-800">|</span>
           <button onClick={() => navigate("/terms")} className="hover:text-white transition-colors text-zinc-500">
             Terms of Use
