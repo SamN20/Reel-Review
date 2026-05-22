@@ -56,3 +56,17 @@ def test_next_vote_prompt_only_for_active_current_drop(db):
 
     assert past_response["next_vote"] is None
     assert active_response["next_vote"] is not None
+
+
+def test_next_vote_prompt_waits_until_week_before_user_vote_drop(db):
+    user = create_user(db)
+    active_drop = create_drop(db, create_movie(db, "Current"), start=date(2026, 5, 11), active=True)
+    create_drop(db, create_movie(db, "Next Week"), start=date(2026, 5, 18), active=False)
+    create_drop(db, None, start=date(2026, 5, 25), mode="user_vote", active=False)
+    for title in ["A", "B", "C", "D", "E", "F"]:
+        create_movie(db, title, in_pool=True)
+    db.commit()
+
+    response = create_rating(rating_payload(active_drop.id), db, user)
+
+    assert response["next_vote"] is None

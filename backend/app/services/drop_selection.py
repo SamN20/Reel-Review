@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 import random
 from typing import Any
 
@@ -52,10 +52,11 @@ class DropSelectionService:
 
     @staticmethod
     def find_next_user_vote_drop(db: Session, source_drop: WeeklyDrop) -> WeeklyDrop | None:
+        next_week_start = source_drop.start_date + timedelta(days=7)
         return (
             db.query(WeeklyDrop)
             .filter(
-                WeeklyDrop.start_date > source_drop.start_date,
+                WeeklyDrop.start_date == next_week_start,
                 WeeklyDrop.mode == "user_vote",
                 WeeklyDrop.movie_id.is_(None),
             )
@@ -209,6 +210,8 @@ class DropSelectionService:
     ) -> WeeklyDropBallot:
         if target_drop.mode != "user_vote":
             raise HTTPException(status_code=400, detail="This drop is not open for User Vote ballots.")
+        if target_drop.start_date != source_drop.start_date + timedelta(days=7):
+            raise HTTPException(status_code=400, detail="Next movie voting opens the week before the User Vote drop.")
         if today > source_drop.end_date:
             raise HTTPException(status_code=400, detail="Next movie voting has closed for this week.")
 

@@ -99,6 +99,26 @@ def test_ballot_rejected_after_source_drop_ends(db):
         )
 
 
+def test_ballot_rejected_before_week_before_user_vote_drop(db):
+    source_movie = create_movie(db, "Current", in_pool=False)
+    source = create_drop(db, source_movie, start=date(2026, 5, 11), active=True)
+    create_drop(db, create_movie(db, "Next Week", in_pool=False), start=date(2026, 5, 18))
+    target = create_drop(db, None, start=date(2026, 5, 25), mode="user_vote")
+    option = create_movie(db, "Option", in_pool=True)
+    user = create_user(db)
+    DropSelectionService.generate_options(db, target)
+
+    with pytest.raises(HTTPException, match="opens the week before"):
+        DropSelectionService.upsert_ballot(
+            db,
+            target_drop=target,
+            source_drop=source,
+            user=user,
+            ranked_movie_ids=[option.id],
+            today=date(2026, 5, 12),
+        )
+
+
 def test_instant_runoff_redistributes_to_winner(db):
     source = create_drop(db, create_movie(db, "Current", in_pool=False), start=date(2026, 5, 11), active=True)
     target = create_drop(db, None, start=date(2026, 5, 18), mode="user_vote")
