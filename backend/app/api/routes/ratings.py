@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import date
-
 from app.api import deps
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
@@ -44,7 +42,7 @@ def create_rating(
         raise HTTPException(status_code=404, detail="Weekly drop not found")
 
     # 2. Check if vote is late
-    today = date.today()
+    today = DropSchedulerService.eastern_today()
     is_late = today > drop.end_date
 
     # 3. Check if user already rated this drop

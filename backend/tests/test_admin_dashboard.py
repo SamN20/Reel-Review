@@ -1,9 +1,11 @@
 from datetime import date, timedelta
 
+from app.api.routes.admin import get_dashboard_stats
 from app.models.movie import Movie
 from app.models.rating import Rating
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
+from app.services.drop_scheduler import DropSchedulerService
 from app.services.ratings_calculator import RatingsCalculator
 
 
@@ -133,3 +135,68 @@ def test_engagement_history_excludes_future_drops(db):
 
     assert len(history) == 1
     assert history[0]["movie_title"] == "Current Movie"
+
+
+def test_engagement_history_uses_eastern_today_for_sunday(db, monkeypatch):
+    monkeypatch.setattr(
+        DropSchedulerService,
+        "eastern_today",
+        staticmethod(lambda now=None: date(2026, 5, 24)),
+    )
+
+    current_movie = Movie(title="Sunday Movie")
+    monday_movie = Movie(title="Monday Movie")
+    db.add_all([current_movie, monday_movie])
+    db.commit()
+
+    current_drop = WeeklyDrop(
+        movie_id=current_movie.id,
+        start_date=date(2026, 5, 18),
+        end_date=date(2026, 5, 24),
+        is_active=False,
+    )
+    monday_drop = WeeklyDrop(
+        movie_id=monday_movie.id,
+        start_date=date(2026, 5, 25),
+        end_date=date(2026, 5, 31),
+        is_active=False,
+    )
+    db.add_all([current_drop, monday_drop])
+    db.commit()
+
+    history = RatingsCalculator.get_engagement_history(db, total_active_users=1)
+
+    assert [item["movie_title"] for item in history] == ["Sunday Movie"]
+
+
+def test_dashboard_stats_rolls_over_before_reading_active_drop(db, monkeypatch):
+    monkeypatch.setattr(
+        DropSchedulerService,
+        "eastern_today",
+        staticmethod(lambda now=None: date(2026, 5, 25)),
+    )
+
+    previous_movie = Movie(title="Previous")
+    current_movie = Movie(title="Current")
+    db.add_all([previous_movie, current_movie])
+    db.commit()
+
+    previous_drop = WeeklyDrop(
+        movie_id=previous_movie.id,
+        start_date=date(2026, 5, 18),
+        end_date=date(2026, 5, 24),
+        is_active=True,
+    )
+    current_drop = WeeklyDrop(
+        movie_id=current_movie.id,
+        start_date=date(2026, 5, 25),
+        end_date=date(2026, 5, 31),
+        is_active=False,
+    )
+    db.add_all([previous_drop, current_drop])
+    db.commit()
+
+    stats = get_dashboard_stats(db)
+
+    assert stats["active_drop"]["id"] == current_drop.id
+    assert stats["active_drop"]["movie_title"] == "Current"

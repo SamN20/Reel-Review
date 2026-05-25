@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date
 from statistics import pstdev
 from typing import Any
 
@@ -11,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models.rating import Rating
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
+from app.services.drop_scheduler import DropSchedulerService
 from app.services.movie_metadata import serialize_movie
 
 
@@ -117,7 +117,7 @@ class ArchiveService:
 
     @staticmethod
     def _archive_rows(db: Session, current_user: User | None) -> list[dict[str, Any]]:
-        today = date.today()
+        today = DropSchedulerService.eastern_today()
         drops = (
             db.query(WeeklyDrop)
             .filter(

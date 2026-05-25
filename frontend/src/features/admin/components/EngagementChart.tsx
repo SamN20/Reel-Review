@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { formatDateUTC, parseDateOnlyUTC } from "../../../lib/dateUtils";
 
 type EngagementPoint = {
   drop_id: number;
@@ -35,13 +36,11 @@ function subtractMonths(baseDate: Date, months: number) {
 }
 
 function formatShortDate(value: string) {
-  const date = new Date(value);
-  return date.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+  return formatDateUTC(value, { month: "short", year: "2-digit" });
 }
 
 function formatWeeklyDropDate(value: string) {
-  const date = new Date(value);
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return formatDateUTC(value, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function truncateLabel(value: string, maxLength: number) {
@@ -56,7 +55,7 @@ function getVisibleData(data: EngagementPoint[], range: RangeKey) {
     return data;
   }
 
-  const latestDate = data.length > 0 ? new Date(data[data.length - 1].date) : new Date();
+  const latestDate = data.length > 0 ? parseDateOnlyUTC(data[data.length - 1].date) : new Date();
   const cutoff =
     range === "month"
       ? subtractMonths(latestDate, 1)
@@ -64,7 +63,7 @@ function getVisibleData(data: EngagementPoint[], range: RangeKey) {
         ? subtractMonths(latestDate, 6)
         : subtractMonths(latestDate, 12);
 
-  const filtered = data.filter((item) => new Date(item.date) >= cutoff);
+  const filtered = data.filter((item) => parseDateOnlyUTC(item.date) >= cutoff);
   return filtered.length > 0 ? filtered : data.slice(-Math.min(data.length, range === "month" ? 4 : range === "sixMonths" ? 12 : 24));
 }
 

@@ -7,6 +7,7 @@ from app.models.rating import Rating
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
 from app.services.archive_service import ArchiveService
+from app.services.drop_scheduler import DropSchedulerService
 
 
 def _create_drop(db: Session, title: str, days_ago: int, scores: list[int]) -> WeeklyDrop:
@@ -109,3 +110,28 @@ def test_archive_vote_order_paginates_chronological_rows(db: Session):
     assert data["limit"] == 1
     assert data["offset"] == 0
     assert data["items"][0]["drop_id"] == newest.id
+
+
+def test_archive_uses_eastern_today_for_current_sunday(db: Session, monkeypatch):
+    monkeypatch.setattr(
+        DropSchedulerService,
+        "eastern_today",
+        staticmethod(lambda now=None: date(2026, 5, 24)),
+    )
+
+    movie = Movie(title="Still Current", release_date=date(2024, 1, 1), genres=[{"name": "Drama"}])
+    db.add(movie)
+    db.commit()
+    db.refresh(movie)
+    current_sunday_drop = WeeklyDrop(
+        movie_id=movie.id,
+        start_date=date(2026, 5, 18),
+        end_date=date(2026, 5, 24),
+    )
+    db.add(current_sunday_drop)
+    db.commit()
+    db.refresh(current_sunday_drop)
+
+    data = ArchiveService.get_vote_order(db, current_user=None, limit=10, offset=0)
+
+    assert all(item["drop_id"] != current_sunday_drop.id for item in data["items"])

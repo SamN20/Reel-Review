@@ -5,6 +5,7 @@ from app.models.movie import Movie
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
 from app.schemas.rating import RatingCreate
+from app.services.drop_scheduler import DropSchedulerService
 
 
 def create_movie(db, title, in_pool=False):
@@ -70,3 +71,19 @@ def test_next_vote_prompt_waits_until_week_before_user_vote_drop(db):
     response = create_rating(rating_payload(active_drop.id), db, user)
 
     assert response["next_vote"] is None
+
+
+def test_sunday_eastern_rating_is_not_late(db, monkeypatch):
+    monkeypatch.setattr(
+        DropSchedulerService,
+        "eastern_today",
+        staticmethod(lambda now=None: date(2026, 5, 24)),
+    )
+
+    user = create_user(db)
+    drop = create_drop(db, create_movie(db, "Sunday Current"), start=date(2026, 5, 18), active=True)
+    db.commit()
+
+    response = create_rating(rating_payload(drop.id), db, user)
+
+    assert response["is_late"] is False

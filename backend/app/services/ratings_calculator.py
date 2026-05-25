@@ -3,20 +3,21 @@ from sqlalchemy import func
 from typing import List, Dict, Any
 import math
 from statistics import pstdev
-from datetime import date
 
 from app.models.rating import Rating
 from app.models.movie import Movie
 from app.models.weekly_drop import WeeklyDrop
+from app.services.drop_scheduler import DropSchedulerService
 
 class RatingsCalculator:
     @staticmethod
     def get_engagement_history(db: Session, total_active_users: int) -> List[Dict[str, Any]]:
         """Return engagement data for active/past drops only, in chronological order."""
+        today = DropSchedulerService.eastern_today()
         eligible_drops = (
             db.query(WeeklyDrop)
             .filter(
-                (WeeklyDrop.start_date <= date.today()) | (WeeklyDrop.is_active == True)
+                (WeeklyDrop.start_date <= today) | (WeeklyDrop.is_active == True)
             )
             .order_by(WeeklyDrop.start_date.asc())
             .all()

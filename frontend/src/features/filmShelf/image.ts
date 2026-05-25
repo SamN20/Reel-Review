@@ -1,3 +1,5 @@
+import { getDateOnlyYear } from "../../lib/dateUtils";
+
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2025&auto=format&fit=crop";
 
@@ -12,5 +14,5 @@ export function getBackdropUrl(path: string | null, size: "w780" | "original" = 
 }
 
 export function getReleaseYear(releaseDate: string | null) {
-  return releaseDate ? new Date(releaseDate).getFullYear().toString() : "N/A";
+  return getDateOnlyYear(releaseDate)?.toString() ?? "N/A";
 }

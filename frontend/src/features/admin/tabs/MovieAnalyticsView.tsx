@@ -24,6 +24,7 @@ import {
   YAxis,
 } from "recharts";
 import { SubCategoryRadar } from "../components/SubCategoryRadar";
+import { formatDateUTC, getDateOnlyYear, toEasternDateString } from "../../../lib/dateUtils";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -119,6 +120,13 @@ function imageUrl(path: string | null, size: string) {
 
 function formatDate(value: string | null) {
   if (!value) return "Unscheduled";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDateUTC(value, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
   return new Date(value).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -133,10 +141,10 @@ function scoreValue(value: number | null) {
 function dateInRange(value: string | null, from: string, to: string) {
   if (!value && (from || to)) return false;
   if (!value) return true;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-  if (from && date < new Date(`${from}T00:00:00`)) return false;
-  if (to && date > new Date(`${to}T23:59:59`)) return false;
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : toEasternDateString(value);
+  if (!date) return false;
+  if (from && date < from) return false;
+  if (to && date > to) return false;
   return true;
 }
 
@@ -271,9 +279,7 @@ export function MovieAnalyticsView({ movieId, onBack }: MovieAnalyticsViewProps)
 
   const backdrop = imageUrl(data.movie.backdrop_path, "original");
   const poster = imageUrl(data.movie.poster_path, "w342");
-  const releaseYear = data.movie.release_date
-    ? new Date(data.movie.release_date).getFullYear()
-    : null;
+  const releaseYear = getDateOnlyYear(data.movie.release_date);
   const genreNames = data.movie.genres.map((genre) => genre.name).filter(Boolean);
   const activeReviewFilterCount = countActiveReviewFilters(reviewFilters);
 

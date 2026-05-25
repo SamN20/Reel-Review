@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MovieMetaDetails } from '../../../components/MovieMetaDetails';
+import { getDateOnlyYear } from '../../../lib/dateUtils';
 import type { MovieSummary } from '../api';
 
 interface ResultsHeroProps {
@@ -12,6 +13,7 @@ interface ResultsHeroProps {
 
 export function ResultsHero({ movie, totalVotes, officialScore, userScore }: ResultsHeroProps) {
   const navigate = useNavigate();
+  const releaseYear = getDateOnlyYear(movie.release_date);
 
   const bgImage = movie.backdrop_path 
     ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
@@ -41,9 +43,9 @@ export function ResultsHero({ movie, totalVotes, officialScore, userScore }: Res
           <div className="flex-1 max-w-3xl">
             <div className="flex items-center gap-3 mb-4">
               <span className="px-2.5 py-1 text-xs font-bold bg-zinc-800 text-zinc-300 rounded border border-zinc-700">Drop Results</span>
-              {movie.release_date && (
+              {releaseYear && (
                 <span className="text-sm font-semibold text-zinc-400">
-                  {new Date(movie.release_date).getFullYear()}
+                  {releaseYear}
                 </span>
               )}
             </div>

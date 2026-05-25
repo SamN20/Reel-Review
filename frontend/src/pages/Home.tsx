@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -10,6 +10,7 @@ import { SiteFooter } from "../components/SiteFooter";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { LoginScreen } from "../components/LoginScreen";
 import { NotificationBanner } from "../components/NotificationBanner";
+import { getDateOnlyYear } from "../lib/dateUtils";
 import { usePageMeta } from "../lib/seo";
 import { captureReferralInvite, getReferralCookieValue } from "../lib/referral";
 
@@ -25,22 +26,43 @@ interface CurrentDrop {
   end_date: string;
 }
 
+interface PastDrop {
+  id: number;
+  movie: {
+    title: string;
+    backdrop_path: string | null;
+    poster_path?: string | null;
+  };
+  start_date: string;
+  end_date: string;
+  community_score: number | null;
+  user_has_rated: boolean;
+}
+
+type HomeCache = {
+  currentDrop?: CurrentDrop | null;
+  pastDrops?: PastDrop[];
+  activeVoters?: number;
+};
+
 export default function Home() {
   const { user, loading: authLoading, login } = useAuth();
   const { inviteCode: routeInviteCode } = useParams<{ inviteCode?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize from cache if available to enable instant rendering without flash
-  const cachedDataStr = localStorage.getItem("reelreview_home_cache");
-  let cachedData: any = null;
-  try {
-    cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : null;
-  } catch (e) {
-    console.error("Failed to parse cached home page data", e);
-  }
+  const cachedData = useMemo<HomeCache | null>(() => {
+    const cachedDataStr = localStorage.getItem("reelreview_home_cache");
+    try {
+      return cachedDataStr ? (JSON.parse(cachedDataStr) as HomeCache) : null;
+    } catch (e) {
+      console.error("Failed to parse cached home page data", e);
+      return null;
+    }
+  }, []);
 
   const [currentDrop, setCurrentDrop] = useState<CurrentDrop | null>(cachedData?.currentDrop || null);
-  const [pastDrops, setPastDrops] = useState(cachedData?.pastDrops || []);
+  const [pastDrops, setPastDrops] = useState<PastDrop[]>(cachedData?.pastDrops || []);
   const [activeVoters, setActiveVoters] = useState<number>(cachedData?.activeVoters || 0);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [showLoader, setShowLoader] = useState(!cachedData);
@@ -48,9 +70,8 @@ export default function Home() {
 
   const API_URL = import.meta.env.VITE_API_URL || "";
   const currentMovieTitle = currentDrop?.movie?.title;
-  const currentMovieYear = currentDrop?.movie?.release_date
-    ? ` (${new Date(currentDrop.movie.release_date).getFullYear()})`
-    : "";
+  const currentReleaseYear = getDateOnlyYear(currentDrop?.movie?.release_date);
+  const currentMovieYear = currentReleaseYear ? ` (${currentReleaseYear})` : "";
 
   usePageMeta({
     title: currentMovieTitle
@@ -65,6 +86,7 @@ export default function Home() {
     const queryInviteCode = searchParams.get("invite");
     const capturedInvite = captureReferralInvite(routeInviteCode ?? queryInviteCode);
     const storedInvite = getReferralCookieValue();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveInviteCode(capturedInvite ?? storedInvite);
 
     if (queryInviteCode) {
@@ -81,9 +103,9 @@ export default function Home() {
 
     const fetchData = async () => {
       let activeDropId: number | null = null;
-      let fetchedCurrentDrop = null;
+      let fetchedCurrentDrop: CurrentDrop | null = null;
       let fetchedActiveVoters = 0;
-      let fetchedPastDrops = [];
+      let fetchedPastDrops: PastDrop[] = [];
 
       try {
         const currentRes = await axios.get(`${API_URL}/api/v1/drops/current`);
@@ -150,7 +172,7 @@ export default function Home() {
     if (!authLoading) {
       fetchData();
     }
-  }, [authLoading, user, API_URL]);
+  }, [authLoading, user, API_URL, cachedData]);
 
   if (authLoading || showLoader) {
     return (

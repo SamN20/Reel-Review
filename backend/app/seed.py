@@ -11,6 +11,7 @@ from app.models.movie import Movie
 from app.models.rating import Rating
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
+from app.services.drop_scheduler import DropSchedulerService
 from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions
 
 logging.basicConfig(level=logging.INFO)
@@ -279,7 +280,7 @@ def seed_data() -> None:
             return
 
         users = ensure_seed_users(db)
-        today = date.today()
+        today = DropSchedulerService.eastern_today()
         current_week_start = today - timedelta(days=today.weekday())
 
         db.query(WeeklyDrop).update({WeeklyDrop.is_active: False})

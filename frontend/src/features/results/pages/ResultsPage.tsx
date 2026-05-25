@@ -13,6 +13,7 @@ import {
 import { CommunityTakes } from "../components/CommunityTakes";
 import { ResultsHero } from "../components/ResultsHero";
 import { SubCategoryBreakdown } from "../components/SubCategoryBreakdown";
+import { getDateOnlyYear } from "../../../lib/dateUtils";
 import { usePageMeta } from "../../../lib/seo";
 
 export default function ResultsPage() {
@@ -26,9 +27,8 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const movieTitle = data?.movie?.title;
-  const movieYear = data?.movie?.release_date
-    ? ` (${new Date(data.movie.release_date).getFullYear()})`
-    : "";
+  const releaseYear = getDateOnlyYear(data?.movie?.release_date);
+  const movieYear = releaseYear ? ` (${releaseYear})` : "";
   const roundedScore = data ? Math.round(data.official_score) : null;
 
   usePageMeta({
@@ -161,9 +161,7 @@ export default function ResultsPage() {
                     {data.movie.title}
                   </h3>
                   <span className="text-xs font-bold text-zinc-300 bg-zinc-950/50 backdrop-blur-sm px-2 py-1 rounded border border-zinc-700/50">
-                    {data.movie.release_date
-                      ? new Date(data.movie.release_date).getFullYear()
-                      : "N/A"}
+                    {getDateOnlyYear(data.movie.release_date) ?? "N/A"}
                   </span>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
-import { formatLocalDate, calculateEndOfWeek } from "../../../lib/dateUtils";
+import { calculateEndOfWeek, formatEasternDate, parseDateOnlyUTC } from "../../../lib/dateUtils";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -126,22 +126,21 @@ export function DropsTab() {
 
   const getWeeks = (count: number, offsetWeeks: number = 0) => {
     const weeks: CalendarWeek[] = [];
-    const today = new Date();
-    const dayOfWeek = today.getDay();
+    const today = parseDateOnlyUTC(formatEasternDate());
+    const dayOfWeek = today.getUTCDay();
     const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
     const baseMonday = new Date(today);
-    baseMonday.setDate(today.getDate() + offsetToMonday);
-    baseMonday.setHours(0, 0, 0, 0);
+    baseMonday.setUTCDate(today.getUTCDate() + offsetToMonday);
 
     for (let i = 0; i < count; i++) {
       const start = new Date(baseMonday);
-      start.setDate(baseMonday.getDate() + (i + offsetWeeks) * 7);
+      start.setUTCDate(baseMonday.getUTCDate() + (i + offsetWeeks) * 7);
       const end = new Date(start);
-      end.setDate(start.getDate() + 6);
+      end.setUTCDate(start.getUTCDate() + 6);
 
-      const startStr = formatLocalDate(start);
-      const endStr = formatLocalDate(end);
+      const startStr = start.toISOString().split("T")[0];
+      const endStr = end.toISOString().split("T")[0];
 
       weeks.push({ start: startStr, end: endStr, dateObj: start });
     }

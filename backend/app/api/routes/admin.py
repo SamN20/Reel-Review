@@ -104,6 +104,7 @@ def get_admin_stats(db: Session = Depends(deps.get_db)):
 
 @router.get("/dashboard-stats")
 def get_dashboard_stats(db: Session = Depends(deps.get_db)):
+    DropSchedulerService.rollover(db)
     active_drop = db.query(WeeklyDrop).filter(WeeklyDrop.is_active == True).first()
     
     total_active_users = db.query(User).filter(User.is_active == True).count()
@@ -614,6 +615,7 @@ class DropCreateSchema(BaseModel):
 
 @router.get("/drops")
 def get_drops(db: Session = Depends(deps.get_db)):
+    DropSchedulerService.rollover(db)
     drops = db.query(WeeklyDrop).order_by(WeeklyDrop.start_date.desc()).all()
     result = []
     for drop in drops:

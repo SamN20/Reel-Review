@@ -23,6 +23,7 @@ import { VoteOnboardingOverlay } from "../features/dropSelection/components/Vote
 import { hasCompletedOnboarding, markOnboardingComplete, ONBOARDING_KEY_VOTE } from "../features/dropSelection/onboarding";
 import type { NextVote } from "../features/dropSelection/types";
 import type { MovieSummary } from "../features/results/api";
+import { getDateOnlyYear, isDateBeforeEasternToday } from "../lib/dateUtils";
 import { usePageMeta } from "../lib/seo";
 
 interface Drop {
@@ -67,9 +68,8 @@ export default function Vote() {
 
   const API_URL = import.meta.env.VITE_API_URL || "";
   const movieTitle = drop?.movie?.title;
-  const movieYear = drop?.movie?.release_date
-    ? ` (${new Date(drop.movie.release_date).getFullYear()})`
-    : "";
+  const releaseYear = getDateOnlyYear(drop?.movie?.release_date);
+  const movieYear = releaseYear ? ` (${releaseYear})` : "";
 
   usePageMeta({
     title: movieTitle
@@ -143,13 +143,7 @@ export default function Vote() {
         );
         const r = response.data;
         if (r) {
-          // Check if drop is active (end_date >= today)
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const endDate = new Date(drop.end_date);
-          endDate.setHours(0, 0, 0, 0);
-
-          if (endDate < today) {
+          if (isDateBeforeEasternToday(drop.end_date)) {
             setIsLocked(true);
           }
           setHasWatched(r.watched_status);
@@ -272,7 +266,7 @@ export default function Vote() {
           <div className="flex items-center gap-3 mb-4">
             {drop.movie.release_date && (
               <span className="px-2.5 py-1 text-xs font-bold bg-zinc-800 text-zinc-300 rounded border border-zinc-700">
-                {new Date(drop.movie.release_date).getFullYear()}
+                {getDateOnlyYear(drop.movie.release_date)}
               </span>
             )}
             <span className="text-sm font-semibold text-zinc-400">
