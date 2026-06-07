@@ -13,6 +13,7 @@ import { ProfileTabs } from "../components/ProfileTabs";
 import { RatingGrid } from "../components/RatingGrid";
 import { ReferralPanel } from "../components/ReferralPanel";
 import type { ProfileTab, ReferralSummary, UserProfile } from "../types";
+import { API_URL } from "../../../lib/api";
 
 export default function ProfilePage() {
   const { user, loading: authLoading, updateUser } = useAuth();
@@ -28,7 +29,6 @@ export default function ProfilePage() {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
 
   const isPublicView = Boolean(username);
-  const API_URL = import.meta.env.VITE_API_URL || "";
   const KEYN_BASE_URL = import.meta.env.VITE_KEYN_BASE_URL || "";
   const keynProfileUrl = KEYN_BASE_URL
     ? `${KEYN_BASE_URL.replace(/\/$/, "")}/profile/edit`

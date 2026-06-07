@@ -9,3 +9,4 @@ from .movie_request import MovieRequest, MovieRequestSupporter
 from .admin_setting import AdminSetting
 from .weekly_drop_vote import WeeklyDropOption, WeeklyDropBallot
 from .roadmap import RoadmapItem, FeatureSuggestion
+from .watch_party import WatchParty, WatchPartyRsvp

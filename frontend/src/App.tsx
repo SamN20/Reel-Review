@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import Home from "./pages/Home";
 import AuthCallback from "./pages/AuthCallback";
@@ -37,8 +37,8 @@ function RouteMetaManager() {
     title = "Film Shelf | Reel Review";
   } else if (pathname.startsWith("/leaderboards")) {
     title = "Leaderboards | Reel Review";
-  } else if (pathname.startsWith("/discussions")) {
-    title = "Discussions | Reel Review";
+  } else if (pathname.startsWith("/community") || pathname.startsWith("/discussions")) {
+    title = "Community | Reel Review";
   } else if (pathname.startsWith("/requests")) {
     title = "Movie Requests | Reel Review";
   } else if (pathname.startsWith("/roadmap")) {
@@ -67,6 +67,16 @@ function RouteMetaManager() {
   return null;
 }
 
+function LegacyDiscussionsRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{ pathname: "/community", search: location.search, hash: location.hash }}
+      replace
+    />
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -83,7 +93,8 @@ function App() {
           <Route path="/film-shelf" element={<FilmShelfPage />} />
           <Route path="/film-shelf/vote-order" element={<VoteOrderPage />} />
           <Route path="/leaderboards" element={<LeaderboardsPage />} />
-          <Route path="/discussions" element={<DiscussionsPage />} />
+          <Route path="/community" element={<DiscussionsPage />} />
+          <Route path="/discussions" element={<LegacyDiscussionsRedirect />} />
           <Route path="/requests" element={<RequestsPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/admin" element={<Admin />} />

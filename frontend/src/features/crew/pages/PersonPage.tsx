@@ -4,6 +4,7 @@ import axios from "axios";
 import { SiteHeader } from "../../../components/SiteHeader";
 import { SiteFooter } from "../../../components/SiteFooter";
 import { Loader2, Clapperboard, Users } from "lucide-react";
+import { API_URL } from "../../../lib/api";
 
 interface CrewMovie {
   id: number;
@@ -19,7 +20,6 @@ export default function PersonPage({ type }: { type: "actor" | "director" }) {
   const [loading, setLoading] = useState(true);
   
   const decodedName = name ? decodeURIComponent(name) : "";
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
     const fetchMovies = async () => {

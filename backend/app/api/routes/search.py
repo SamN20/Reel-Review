@@ -41,9 +41,9 @@ SITE_DESTINATIONS = [
         "path": "/leaderboards",
     },
     {
-        "title": "Discussions",
-        "description": "Read spoiler-free and spoiler-zone community takes.",
-        "path": "/discussions",
+        "title": "Community",
+        "description": "Find watch parties and spoiler-safe community takes.",
+        "path": "/community",
     },
     {
         "title": "Movie Requests",

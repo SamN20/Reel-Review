@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
 
@@ -33,7 +33,7 @@ vi.mock("./pages/LeaderboardsPage", () => ({
 }));
 
 vi.mock("./pages/DiscussionsPage", () => ({
-  default: () => <div>Discussions Page</div>,
+  default: () => <div>Community Page</div>,
 }));
 
 vi.mock("./features/results/pages/ResultsPage", () => ({
@@ -45,6 +45,19 @@ vi.mock("./features/roadmap/pages/RoadmapPage", () => ({
 }));
 
 test("renders the home route", () => {
+  window.history.pushState({}, "", "/");
   render(<App />);
   expect(screen.getByText(/Home Page/i)).toBeInTheDocument();
+});
+
+test("redirects legacy discussions links to community", async () => {
+  window.history.pushState({}, "", "/discussions?tab=spoilers#watch-parties");
+  render(<App />);
+
+  expect(screen.getByText(/Community Page/i)).toBeInTheDocument();
+  await waitFor(() => {
+    expect(window.location.pathname).toBe("/community");
+  });
+  expect(window.location.search).toBe("?tab=spoilers");
+  expect(window.location.hash).toBe("#watch-parties");
 });

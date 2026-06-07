@@ -1,6 +1,46 @@
 import axios, { type AxiosRequestConfig } from "axios";
 
-export const API_URL = import.meta.env.VITE_API_URL || "";
+export function normalizeApiBaseUrl(configuredUrl: string) {
+  const trimmed = configuredUrl.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return normalizeApiBaseUrlForLocation(
+    trimmed,
+    typeof window === "undefined" ? null : window.location,
+  );
+}
+
+export function normalizeApiBaseUrlForLocation(
+  configuredUrl: string,
+  currentLocation: Pick<Location, "origin" | "protocol" | "hostname" | "port"> | null,
+) {
+  if (!currentLocation) {
+    return configuredUrl;
+  }
+
+  try {
+    const resolved = new URL(configuredUrl, currentLocation.origin);
+    if (
+      currentLocation.protocol === "https:" &&
+      resolved.protocol === "http:" &&
+      resolved.hostname === currentLocation.hostname
+    ) {
+      resolved.protocol = "https:";
+      if (currentLocation.port) {
+        resolved.port = currentLocation.port;
+      } else if (resolved.port === "80") {
+        resolved.port = "";
+      }
+    }
+    return resolved.origin === currentLocation.origin ? "" : resolved.origin;
+  } catch {
+    return configuredUrl;
+  }
+}
+
+export const API_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL || "");
 
 export function buildApiUrl(path: string) {
   return `${API_URL}${path}`;

@@ -50,6 +50,7 @@ class Settings(BaseSettings):
 
     # Weekly drop automation
     ENABLE_DROP_SCHEDULER: bool = True
+    ENABLE_WATCH_PARTY_REMINDERS: bool = True
 
     model_config = SettingsConfigDict(
         env_file=tuple(str(path) for path in ENV_FILES),

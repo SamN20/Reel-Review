@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import axios from "axios";
+import { API_URL } from "../lib/api";
 import { getReferralCookieValue, isValidInviteCode } from "../lib/referral";
 
 interface User {
@@ -37,9 +38,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Use the API URL from environment variables, fallback to backend default if not set
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
     const fetchUser = async () => {

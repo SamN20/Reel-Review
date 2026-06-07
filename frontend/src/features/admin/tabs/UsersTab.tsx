@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../../../context/AuthContext";
 import { useDraggableScroll } from "../../../hooks/useDraggableScroll";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../../../lib/api";
 
 interface User {
   id: number;

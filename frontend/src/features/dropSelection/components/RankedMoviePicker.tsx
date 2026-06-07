@@ -8,6 +8,7 @@ import { MovieDraftCard } from "./MovieDraftCard";
 import { DraftSuccessOverlay } from "./DraftSuccessOverlay";
 import { RankOnboardingOverlay } from "./RankOnboardingOverlay";
 import { hasCompletedOnboarding, markOnboardingComplete, ONBOARDING_KEY_RANK } from "../onboarding";
+import { API_URL } from "../../../lib/api";
 
 type RankedMoviePickerProps = {
   nextVote: NextVote;
@@ -28,8 +29,6 @@ export function RankedMoviePicker({ nextVote, onSaved }: RankedMoviePickerProps)
   const [message, setMessage] = useState("");
   const [showDraftSuccess, setShowDraftSuccess] = useState(false);
   const [showRankOnboarding, setShowRankOnboarding] = useState(false);
-
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
   // Check onboarding flag from admin settings.
   useEffect(() => {
@@ -277,4 +276,3 @@ export function RankedMoviePicker({ nextVote, onSaved }: RankedMoviePickerProps)
 
   return createPortal(modalContent, document.body);
 }
-

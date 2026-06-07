@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../../../lib/api";
 
 type LeaderboardSettings = {
   categories_min_ratings: number;
@@ -25,6 +24,17 @@ type NotificationBannerSettings = {
   messages: string[];
   scroll_enabled: boolean;
   link_url: string;
+};
+
+type WatchPartyChannelConfig = {
+  key: string;
+  label: string;
+  link_url: string;
+  description: string;
+};
+
+type WatchPartyDiscordSettings = {
+  channels: WatchPartyChannelConfig[];
 };
 
 type NumberFieldProps = {
@@ -92,6 +102,7 @@ export function SettingsTab() {
   const [dropSettings, setDropSettings] = useState<DropSelectionSettings | null>(null);
   const [onboardingSettings, setOnboardingSettings] = useState<OnboardingSettings | null>(null);
   const [bannerSettings, setBannerSettings] = useState<NotificationBannerSettings | null>(null);
+  const [watchPartySettings, setWatchPartySettings] = useState<WatchPartyDiscordSettings | null>(null);
   const [bannerMessageDraft, setBannerMessageDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -102,16 +113,18 @@ export function SettingsTab() {
     try {
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
-      const [res, dropRes, onboardingRes, bannerRes] = await Promise.all([
+      const [res, dropRes, onboardingRes, bannerRes, watchPartyRes] = await Promise.all([
         axios.get(`${API_URL}/api/v1/admin/settings/leaderboards`, { headers }),
         axios.get(`${API_URL}/api/v1/admin/settings/drop-selection`, { headers }),
         axios.get(`${API_URL}/api/v1/admin/settings/onboarding`, { headers }),
         axios.get(`${API_URL}/api/v1/admin/settings/notification-banner`, { headers }),
+        axios.get(`${API_URL}/api/v1/admin/settings/watch-party-discord`, { headers }),
       ]);
       setSettings(res.data);
       setDropSettings(dropRes.data);
       setOnboardingSettings(onboardingRes.data);
       setBannerSettings(bannerRes.data);
+      setWatchPartySettings(watchPartyRes.data);
       setBannerMessageDraft((bannerRes.data?.messages || []).join("\n"));
       setError("");
     } catch (err) {
@@ -147,7 +160,7 @@ export function SettingsTab() {
   };
 
   const handleSave = async () => {
-    if (!settings || !dropSettings || !onboardingSettings || !bannerSettings) return;
+    if (!settings || !dropSettings || !onboardingSettings || !bannerSettings || !watchPartySettings) return;
     setSaving(true);
     setSuccess("");
     try {
@@ -161,16 +174,18 @@ export function SettingsTab() {
         ...bannerSettings,
         messages: bannerMessages,
       };
-      const [res, dropRes, onboardingRes, bannerRes] = await Promise.all([
+      const [res, dropRes, onboardingRes, bannerRes, watchPartyRes] = await Promise.all([
         axios.put(`${API_URL}/api/v1/admin/settings/leaderboards`, settings, { headers }),
         axios.put(`${API_URL}/api/v1/admin/settings/drop-selection`, dropSettings, { headers }),
         axios.put(`${API_URL}/api/v1/admin/settings/onboarding`, onboardingSettings, { headers }),
         axios.put(`${API_URL}/api/v1/admin/settings/notification-banner`, bannerPayload, { headers }),
+        axios.put(`${API_URL}/api/v1/admin/settings/watch-party-discord`, watchPartySettings, { headers }),
       ]);
       setSettings(res.data);
       setDropSettings(dropRes.data);
       setOnboardingSettings(onboardingRes.data);
       setBannerSettings(bannerRes.data);
+      setWatchPartySettings(watchPartyRes.data);
       setBannerMessageDraft((bannerRes.data?.messages || []).join("\n"));
       setSuccess("Settings saved.");
       setError("");
@@ -202,7 +217,7 @@ export function SettingsTab() {
         </div>
       )}
 
-      {settings && dropSettings && onboardingSettings && bannerSettings && (
+      {settings && dropSettings && onboardingSettings && bannerSettings && watchPartySettings && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-6">
           <div>
             <h3 className="text-lg font-semibold">Leaderboard Minimum Ratings</h3>
@@ -300,6 +315,94 @@ export function SettingsTab() {
               placeholder="Type a short announcement..."
             />
           </label>
+
+          <div className="h-px bg-zinc-800" />
+
+          <div>
+            <h3 className="text-lg font-semibold">byNolo Discord Watch Party Channels</h3>
+            <p className="text-sm text-zinc-400 mt-1">
+              Configure the two canonical Discord destinations members can choose when they host a public byNolo watch party.
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            {watchPartySettings.channels.map((channel, index) => (
+              <div key={channel.key} className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-4 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-zinc-200">Discord Channel {index + 1}</p>
+                  <p className="text-xs text-zinc-500 mt-1">The key is the stable identifier used by watch-party records. Keep it short and unique.</p>
+                </div>
+
+                <label className="flex flex-col gap-2 text-sm text-zinc-300">
+                  Channel Key
+                  <input
+                    type="text"
+                    value={channel.key}
+                    onChange={(e) =>
+                      setWatchPartySettings({
+                        channels: watchPartySettings.channels.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, key: e.target.value } : item,
+                        ),
+                      })
+                    }
+                    className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white"
+                    placeholder="bynolo_discord_one"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2 text-sm text-zinc-300">
+                  Channel Label
+                  <input
+                    type="text"
+                    value={channel.label}
+                    onChange={(e) =>
+                      setWatchPartySettings({
+                        channels: watchPartySettings.channels.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, label: e.target.value } : item,
+                        ),
+                      })
+                    }
+                    className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white"
+                    placeholder="Friday Night byNolo Watch Party"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2 text-sm text-zinc-300">
+                  Channel URL
+                  <input
+                    type="text"
+                    value={channel.link_url}
+                    onChange={(e) =>
+                      setWatchPartySettings({
+                        channels: watchPartySettings.channels.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, link_url: e.target.value } : item,
+                        ),
+                      })
+                    }
+                    className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white"
+                    placeholder="https://discord.com/channels/..."
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2 text-sm text-zinc-300">
+                  Description
+                  <input
+                    type="text"
+                    value={channel.description}
+                    onChange={(e) =>
+                      setWatchPartySettings({
+                        channels: watchPartySettings.channels.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, description: e.target.value } : item,
+                        ),
+                      })
+                    }
+                    className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white"
+                    placeholder="Public server channel for open group watches."
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
 
           <div className="flex items-center justify-end">
             <button

@@ -37,12 +37,18 @@ async def startup_event():
     if settings.ENABLE_DROP_SCHEDULER:
         from app.services.drop_scheduler import drop_scheduler
         drop_scheduler.start()
+    if settings.ENABLE_WATCH_PARTY_REMINDERS:
+        from app.services.watch_party_reminders import watch_party_reminders
+        watch_party_reminders.start()
 
 @app.on_event("shutdown")
 async def shutdown_event():
     if settings.ENABLE_DROP_SCHEDULER:
         from app.services.drop_scheduler import drop_scheduler
         await drop_scheduler.stop()
+    if settings.ENABLE_WATCH_PARTY_REMINDERS:
+        from app.services.watch_party_reminders import watch_party_reminders
+        await watch_party_reminders.stop()
 
 @app.get("/")
 def read_root():

@@ -8,6 +8,7 @@ interface ReviewCardProps {
   review: Review;
   isHighestMatch?: boolean;
   officialScore: number;
+  hideScores?: boolean;
   onToggleLike: (reviewId: number) => Promise<void>;
   onToggleReplyLike: (replyId: number) => Promise<void>;
   onReportReview: (reviewId: number, reason: ReportReason) => Promise<void>;
@@ -19,6 +20,7 @@ export function ReviewCard({
   review,
   isHighestMatch,
   officialScore,
+  hideScores = false,
   onToggleLike,
   onToggleReplyLike,
   onReportReview,
@@ -57,22 +59,28 @@ export function ReviewCard({
           <div>
             <div className="font-bold text-zinc-200 flex items-center gap-2">
               {review.user_name}
-              {isHighestMatch && (
+              {isHighestMatch && !hideScores && (
                 <span title="Highest community match to your taste">
                   <Award size={14} className="text-amber-500" />
                 </span>
               )}
             </div>
             <div className="text-xs text-zinc-500">
-              {review.user_name === "Anonymous" ? "Secret Voter" : relationText}
+              {hideScores ? "Rating hidden until voting closes" : review.user_name === "Anonymous" ? "Secret Voter" : relationText}
             </div>
           </div>
         </div>
 
         {/* User's Score Pill */}
-        <div className={`px-3 py-1 rounded-lg text-sm font-black tabular-nums border ${isMatch ? 'bg-green-950/30 text-green-400 border-green-900/50' : 'bg-amber-950/30 text-amber-500 border-amber-900/50'}`}>
-          {review.overall_score}
-        </div>
+        {hideScores ? (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-black uppercase tracking-widest text-zinc-500">
+            Hidden
+          </div>
+        ) : (
+          <div className={`px-3 py-1 rounded-lg text-sm font-black tabular-nums border ${isMatch ? 'bg-green-950/30 text-green-400 border-green-900/50' : 'bg-amber-950/30 text-amber-500 border-amber-900/50'}`}>
+            {review.overall_score}
+          </div>
+        )}
       </div>
 
       <div className="relative">

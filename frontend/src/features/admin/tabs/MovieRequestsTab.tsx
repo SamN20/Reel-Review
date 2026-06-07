@@ -3,8 +3,7 @@ import axios from "axios";
 import { CheckCircle, Film, Search, XCircle } from "lucide-react";
 
 import { MovieStagingScreen } from "./MovieStagingScreen";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../../../lib/api";
 
 type RequestStatus = "all" | "pending" | "approved" | "rejected";
 

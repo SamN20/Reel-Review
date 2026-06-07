@@ -129,7 +129,7 @@ export default function Privacy() {
               </p>
               <ul className="list-disc pl-5 space-y-2 text-sm text-zinc-400">
                 <li>Calculating aggregate community film stats (score averages, ranking index, sentiment charts).</li>
-                <li>Populating the discussions board (Spoiler-Free threads and the Spoiler Zone).</li>
+                <li>Populating the community board (Spoiler-Free threads and the Spoiler Zone).</li>
                 <li>Identifying your matching community taste peers (Perfect Matches, Closest Matches, Polar Opposites) and building Leaderboard profiles.</li>
                 <li>Powering weekly drop scheduling, ballot counting, movie request workflows, and member referral attribution.</li>
                 <li>Displaying public profiles, public leaderboards, and referral summaries according to the privacy settings you choose.</li>

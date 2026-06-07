@@ -34,3 +34,14 @@ class NotificationBannerSettings(BaseModel):
     messages: list[str]
     scroll_enabled: bool
     link_url: str
+
+
+class WatchPartyChannelConfig(BaseModel):
+    key: str
+    label: str
+    link_url: str
+    description: str = ""
+
+
+class WatchPartyDiscordSettings(BaseModel):
+    channels: list[WatchPartyChannelConfig]

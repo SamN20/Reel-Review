@@ -25,6 +25,7 @@ import type { NextVote } from "../features/dropSelection/types";
 import type { MovieSummary } from "../features/results/api";
 import { getDateOnlyYear, isDateBeforeEasternToday } from "../lib/dateUtils";
 import { usePageMeta } from "../lib/seo";
+import { API_URL } from "../lib/api";
 
 interface Drop {
   id: number;
@@ -66,7 +67,6 @@ export default function Vote() {
   const [showVoteSuccess, setShowVoteSuccess] = useState(false);
   const [showVoteOnboarding, setShowVoteOnboarding] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || "";
   const movieTitle = drop?.movie?.title;
   const releaseYear = getDateOnlyYear(drop?.movie?.release_date);
   const movieYear = releaseYear ? ` (${releaseYear})` : "";

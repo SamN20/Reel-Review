@@ -17,7 +17,7 @@ from app.models.review_reply import ReviewReply
 from app.models.review_report import ReviewReport
 from app.models.movie_request import MovieRequest
 from app.schemas.user import UserOut, UserUpdate, AdminReferralSummaryOut
-from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings, OnboardingSettings, NotificationBannerSettings
+from app.schemas.admin_settings import DropSelectionSettings, LeaderboardSettings, OnboardingSettings, NotificationBannerSettings, WatchPartyDiscordSettings, WatchPartyChannelConfig
 from app.core.config import settings
 from app.services.referrals import ensure_user_invite_code
 from app.services.admin_settings import (
@@ -25,8 +25,10 @@ from app.services.admin_settings import (
     DEFAULT_LEADERBOARD_SETTINGS,
     DEFAULT_ONBOARDING_SETTINGS,
     DEFAULT_NOTIFICATION_BANNER_SETTINGS,
+    DEFAULT_WATCH_PARTY_DISCORD_SETTINGS,
     NOTIFICATION_BANNER_SETTINGS_KEY,
     ONBOARDING_SETTINGS_KEY,
+    WATCH_PARTY_DISCORD_SETTINGS_KEY,
     get_or_create_setting,
     update_setting,
 )
@@ -82,6 +84,25 @@ def serialize_notification_banner_settings(value: dict) -> NotificationBannerSet
         scroll_enabled=bool(value.get("scroll_enabled", False)),
         link_url=str(value.get("link_url", "")) if value.get("link_url") is not None else "",
     )
+
+
+def serialize_watch_party_discord_settings(value: dict) -> WatchPartyDiscordSettings:
+    raw_channels = value.get("channels")
+    if not isinstance(raw_channels, list):
+        raw_channels = DEFAULT_WATCH_PARTY_DISCORD_SETTINGS["channels"]
+    channels: list[WatchPartyChannelConfig] = []
+    for index, channel in enumerate(raw_channels):
+        source = channel if isinstance(channel, dict) else {}
+        default = DEFAULT_WATCH_PARTY_DISCORD_SETTINGS["channels"][index] if index < len(DEFAULT_WATCH_PARTY_DISCORD_SETTINGS["channels"]) else {}
+        channels.append(
+            WatchPartyChannelConfig(
+                key=str(source.get("key") or default.get("key") or f"bynolo_discord_{index + 1}").strip(),
+                label=str(source.get("label") or default.get("label") or "").strip(),
+                link_url=str(source.get("link_url") or default.get("link_url") or "").strip(),
+                description=str(source.get("description") or default.get("description") or "").strip(),
+            )
+        )
+    return WatchPartyDiscordSettings(channels=channels)
 
 def get_tmdb_headers():
     return {
@@ -236,6 +257,34 @@ def update_notification_banner_settings(payload: NotificationBannerSettings, db:
         },
     )
     return serialize_notification_banner_settings(setting.value)
+
+
+@router.get("/settings/watch-party-discord", response_model=WatchPartyDiscordSettings)
+def get_watch_party_discord_settings(db: Session = Depends(deps.get_db)):
+    setting = get_or_create_setting(db, WATCH_PARTY_DISCORD_SETTINGS_KEY, DEFAULT_WATCH_PARTY_DISCORD_SETTINGS)
+    return serialize_watch_party_discord_settings(setting.value)
+
+
+@router.put("/settings/watch-party-discord", response_model=WatchPartyDiscordSettings)
+def update_watch_party_discord_settings(payload: WatchPartyDiscordSettings, db: Session = Depends(deps.get_db)):
+    if len(payload.channels) != 2:
+        raise HTTPException(status_code=400, detail="Exactly two byNolo Discord channels must be configured.")
+    keys = [channel.key.strip() for channel in payload.channels]
+    if len(set(keys)) != len(keys):
+        raise HTTPException(status_code=400, detail="Discord channel keys must be unique.")
+    next_value = {
+        "channels": [
+            {
+                "key": channel.key.strip(),
+                "label": channel.label.strip(),
+                "link_url": channel.link_url.strip(),
+                "description": channel.description.strip(),
+            }
+            for channel in payload.channels
+        ]
+    }
+    setting = update_setting(db, WATCH_PARTY_DISCORD_SETTINGS_KEY, next_value)
+    return serialize_watch_party_discord_settings(setting.value)
 
 
 @open_router.get("/settings/notification-banner/public", response_model=NotificationBannerSettings)

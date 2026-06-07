@@ -4,8 +4,7 @@ import { Filter, X } from "lucide-react";
 import { MovieStagingScreen } from "./MovieStagingScreen";
 import { MovieAnalyticsView } from "./MovieAnalyticsView";
 import { KanbanColumn } from "../components/KanbanColumn";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../../../lib/api";
 
 type Genre = {
   id?: number | null;

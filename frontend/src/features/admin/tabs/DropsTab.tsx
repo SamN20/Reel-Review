@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import { calculateEndOfWeek, formatEasternDate, parseDateOnlyUTC } from "../../../lib/dateUtils";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../../../lib/api";
 
 const MODE_LABELS: Record<string, { label: string; description: string }> = {
   admin_pick: {

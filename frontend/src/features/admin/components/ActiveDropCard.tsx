@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Send } from "lucide-react";
+import { API_URL } from "../../../lib/api";
 
 export function ActiveDropCard({ data }: { data: any }) {
   const [sending, setSending] = useState(false);
@@ -21,7 +22,6 @@ export function ActiveDropCard({ data }: { data: any }) {
     setMessage(null);
     try {
       const token = localStorage.getItem("token");
-      const API_URL = import.meta.env.VITE_API_URL || "";
       const res = await axios.post(`${API_URL}/api/v1/admin/reminders/weekend`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

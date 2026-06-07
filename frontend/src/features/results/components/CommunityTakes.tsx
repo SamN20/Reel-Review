@@ -28,6 +28,7 @@ interface CommunityTakesProps {
   officialScore: number;
   userScore: number | null;
   initialTab?: ReviewTab;
+  hideScores?: boolean;
 }
 
 export function CommunityTakes({
@@ -36,6 +37,7 @@ export function CommunityTakes({
   officialScore,
   userScore,
   initialTab = "spoiler-free",
+  hideScores = false,
 }: CommunityTakesProps) {
   const [activeTab, setActiveTab] = useState<ReviewTab>(initialTab);
   const [activeSort, setActiveSort] = useState<ReviewSort>("top");
@@ -205,7 +207,7 @@ export function CommunityTakes({
             onClick={() => setActiveSort("top")}
             className={`flex items-center gap-1.5 font-semibold ${activeSort === "top" ? "text-white" : "text-zinc-500 hover:text-zinc-300"}`}
           >
-            <TrendingUp size={16} className="text-red-500" /> Top Rated Comments
+            <TrendingUp size={16} className="text-red-500" /> Top Comments
           </button>
           <button
             onClick={() => setActiveSort("recent")}
@@ -224,7 +226,14 @@ export function CommunityTakes({
 
       {activeTab === 'spoiler-free' ? (
         <>
+          {hideScores ? (
+            <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-900/35 p-5 text-sm leading-6 text-zinc-300">
+              Ratings stay hidden here until the voting period closes. Text reviews, replies, likes, and reports are still open.
+            </div>
+          ) : null}
+
           {/* MATCH CARDS (Perfect Match vs Polar Opposite) */}
+          {!hideScores ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {perfectMatch && (
               <div className="bg-green-950/10 border border-green-900/40 rounded-2xl p-5 flex flex-col justify-between hover:bg-green-950/20 transition-colors">
@@ -274,6 +283,7 @@ export function CommunityTakes({
               </div>
             )}
           </div>
+          ) : null}
 
           {/* Reviews List */}
           <div key={activeSort} className="flex flex-col animate-in fade-in duration-500">
@@ -291,6 +301,7 @@ export function CommunityTakes({
                   key={review.id}
                   review={review}
                   officialScore={officialScore}
+                  hideScores={hideScores}
                   isHighestMatch={review.id === highestMatchReviewId}
                   onToggleLike={async (reviewId) => {
                     if (!requireSignedIn()) return;
@@ -373,6 +384,7 @@ export function CommunityTakes({
                     key={review.id}
                     review={review}
                     officialScore={officialScore}
+                    hideScores={hideScores}
                     isHighestMatch={review.id === highestMatchReviewId}
                     onToggleLike={async (reviewId) => {
                       if (!requireSignedIn()) return;

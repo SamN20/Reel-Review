@@ -13,6 +13,7 @@ import { NotificationBanner } from "../components/NotificationBanner";
 import { getDateOnlyYear } from "../lib/dateUtils";
 import { usePageMeta } from "../lib/seo";
 import { captureReferralInvite, getReferralCookieValue } from "../lib/referral";
+import { API_URL } from "../lib/api";
 
 interface CurrentDrop {
   id: number;
@@ -68,7 +69,6 @@ export default function Home() {
   const [showLoader, setShowLoader] = useState(!cachedData);
   const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || "";
   const currentMovieTitle = currentDrop?.movie?.title;
   const currentReleaseYear = getDateOnlyYear(currentDrop?.movie?.release_date);
   const currentMovieYear = currentReleaseYear ? ` (${currentReleaseYear})` : "";

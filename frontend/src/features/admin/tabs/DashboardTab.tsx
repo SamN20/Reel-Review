@@ -7,8 +7,7 @@ import { SentimentChart } from "../components/SentimentChart";
 import { SubCategoryRadar } from "../components/SubCategoryRadar";
 import { InsightsPanel } from "../components/InsightsPanel";
 import { ModerationAlert } from "../components/ModerationAlert";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../../../lib/api";
 
 export function DashboardTab() {
   const [stats, setStats] = useState<any>(null);

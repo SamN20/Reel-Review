@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { SearchOverlay } from "./SearchOverlay";
+import { API_URL } from "../lib/api";
 
-type SiteHeaderSection = "current-week" | "film-shelf" | "leaderboards" | "discussions" | null;
+type SiteHeaderSection = "current-week" | "film-shelf" | "leaderboards" | "community" | null;
 
 interface SiteHeaderProps {
   activeSection?: SiteHeaderSection;
@@ -16,10 +17,8 @@ const NAV_LINKS = [
   { id: "current-week", label: "Current Week", path: "/" },
   { id: "film-shelf", label: "The Film Shelf", path: "/film-shelf" },
   { id: "leaderboards", label: "Leaderboards", path: "/leaderboards" },
-  { id: "discussions", label: "Discussions", path: "/discussions" },
+  { id: "community", label: "Community", path: "/community" },
 ] as const;
-
-const API_URL = import.meta.env.VITE_API_URL || "";
 
 export function SiteHeader({ activeSection = null }: SiteHeaderProps) {
   const navigate = useNavigate();

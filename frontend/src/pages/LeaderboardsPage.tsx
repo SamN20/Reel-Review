@@ -9,6 +9,7 @@ import { DivisiveCard, type LBDivisive } from "../features/leaderboards/componen
 import { CategoryMovieCard, type LBCategoryMovie } from "../features/leaderboards/components/CategoryMovieCard";
 import { EmptyState } from "../features/leaderboards/components/EmptyState";
 import { NotificationBanner } from "../components/NotificationBanner";
+import { API_URL } from "../lib/api";
 
 interface CategoryLeaderboardsData {
   story: LBCategoryMovie[];
@@ -30,8 +31,6 @@ export default function LeaderboardsPage() {
   const [categories, setCategories] = useState<CategoryLeaderboardsData | null>(null);
   
   const [loading, setLoading] = useState(true);
-
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
     const fetchData = async () => {

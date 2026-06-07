@@ -8,6 +8,7 @@ import { SiteFooter } from "../components/SiteFooter";
 import { SiteHeader } from "../components/SiteHeader";
 import { CommunityTakes } from "../features/results/components/CommunityTakes";
 import { fetchResultsSummary, type ResultsSummary, type ReviewTab } from "../features/results/api";
+import { WatchPartyBoard } from "../features/watchParties/components/WatchPartyBoard";
 import { getBackdropUrl, getReleaseYear } from "../features/filmShelf/image";
 import { apiGet } from "../lib/api";
 import { usePageMeta } from "../lib/seo";
@@ -38,6 +39,16 @@ function formatDropWindow(startDate: string, endDate: string) {
   return `${formatter.format(new Date(`${startDate}T00:00:00`))} - ${formatter.format(new Date(`${endDate}T00:00:00`))}`;
 }
 
+function todayDateKey() {
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+}
+
+function hasVotingEnded(endDate: string) {
+  return endDate < todayDateKey();
+}
+
 export default function DiscussionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = useMemo(() => getInitialTab(searchParams.get("tab")), [searchParams]);
@@ -58,12 +69,13 @@ export default function DiscussionsPage() {
   const releaseYear = getReleaseYear(summary?.movie.release_date ?? selectedDrop?.movie.release_date ?? null);
   const heroImage = getBackdropUrl(summary?.movie.backdrop_path ?? selectedDrop?.movie.backdrop_path ?? null, "original");
   const recentDrops = pastDrops.slice(0, 6);
+  const hideCommunityScores = selectedDrop ? !hasVotingEnded(selectedDrop.end_date) : false;
 
   usePageMeta({
-    title: movieTitle ? `Discussions: ${movieTitle} | Reel Review` : "Discussions | Reel Review",
+    title: movieTitle ? `Community: ${movieTitle} | Reel Review` : "Community | Reel Review",
     description: movieTitle
-      ? `Join spoiler-safe Reel Review conversations for ${movieTitle}.`
-      : "Join Reel Review community discussions with spoiler-free and spoiler-zone sections.",
+      ? `Find watch parties and spoiler-safe Reel Review conversations for ${movieTitle}.`
+      : "Find Reel Review watch parties, spoiler-free takes, and spoiler-zone conversations.",
   });
 
   useEffect(() => {
@@ -92,7 +104,7 @@ export default function DiscussionsPage() {
         setSelectedDropId((requestedDrop ?? fallbackDrop)?.id ?? null);
       } catch (err) {
         console.error("Failed to load discussion drops", err);
-        setError("Discussions could not be loaded right now.");
+        setError("Community could not be loaded right now.");
       } finally {
         setLoadingDrops(false);
       }
@@ -137,7 +149,7 @@ export default function DiscussionsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-red-600 selection:text-white flex flex-col overflow-x-hidden">
-      <SiteHeader activeSection="discussions" />
+      <SiteHeader activeSection="community" />
       <NotificationBanner />
 
       <main className="flex-1">
@@ -152,7 +164,7 @@ export default function DiscussionsPage() {
           <div className="relative z-10 mx-auto flex min-h-[48vh] max-w-7xl flex-col justify-end pb-14">
             <div className="mb-5 flex w-fit items-center gap-2 rounded border border-red-500/30 bg-red-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-red-400">
               <MessageSquare size={13} />
-              Community Discussions
+              Community
             </div>
             <h1 className="max-w-4xl text-5xl font-black leading-[1.03] tracking-tighter text-white sm:text-7xl">
               {movieTitle ? movieTitle : "Community takes are warming up."}
@@ -175,7 +187,7 @@ export default function DiscussionsPage() {
               )}
             </div>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-300">
-              Talk through this week&apos;s film, keep clean first impressions spoiler-free, and step into the spoiler zone only when you are ready.
+              Host a watch party, meet up for this week&apos;s film, keep first impressions spoiler-free, and step into the spoiler zone only when you are ready.
             </p>
           </div>
         </section>
@@ -184,7 +196,7 @@ export default function DiscussionsPage() {
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="mb-5 flex items-center gap-2 text-sm font-bold text-zinc-300">
               <CalendarDays size={18} className="text-zinc-500" />
-              Recent Discussions
+              Recent Drops
             </div>
 
             <div className="space-y-2">
@@ -269,6 +281,10 @@ export default function DiscussionsPage() {
                   </div>
                 </div>
 
+                <div className="mb-10">
+                  <WatchPartyBoard />
+                </div>
+
                 <CommunityTakes
                   key={`${summary.drop_id}-${initialTab}`}
                   dropId={summary.drop_id}
@@ -276,6 +292,7 @@ export default function DiscussionsPage() {
                   officialScore={summary.official_score}
                   userScore={summary.user_score}
                   initialTab={initialTab}
+                  hideScores={hideCommunityScores}
                 />
               </>
             ) : (

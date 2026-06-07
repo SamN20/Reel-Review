@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { SiteHeader } from "./SiteHeader";
 
-type HeaderSection = "current-week" | "film-shelf" | "leaderboards" | "discussions";
+type HeaderSection = "current-week" | "film-shelf" | "leaderboards" | "community";
 
 interface SectionPlaceholderPageProps {
   activeSection: HeaderSection;

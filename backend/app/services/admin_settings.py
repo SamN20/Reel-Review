@@ -31,8 +31,26 @@ DEFAULT_NOTIFICATION_BANNER_SETTINGS: Dict[str, Any] = {
     "link_url": "",
 }
 
+DEFAULT_WATCH_PARTY_DISCORD_SETTINGS: Dict[str, Any] = {
+    "channels": [
+        {
+            "key": "bynolo_discord_one",
+            "label": "byNolo Watch Party One",
+            "link_url": "",
+            "description": "",
+        },
+        {
+            "key": "bynolo_discord_two",
+            "label": "byNolo Watch Party Two",
+            "link_url": "",
+            "description": "",
+        },
+    ]
+}
+
 ONBOARDING_SETTINGS_KEY = "onboarding"
 NOTIFICATION_BANNER_SETTINGS_KEY = "notification_banner"
+WATCH_PARTY_DISCORD_SETTINGS_KEY = "watch_party_discord"
 
 
 def get_setting(db: Session, key: str, default_value: Dict[str, Any]) -> Dict[str, Any]:

@@ -58,6 +58,55 @@ const spoilerReview = {
   is_spoiler: true,
 };
 
+const watchPartyBoard = {
+  drop: {
+    id: 11,
+    movie_title: "Current Feature",
+    start_date: "2026-06-01",
+    end_date: "2026-06-07",
+  },
+  available_discord_channels: [
+    {
+      key: "bynolo_public_one",
+      label: "byNolo Public One",
+      link_url: "https://discord.com/channels/public-one",
+      description: "Open watch room one.",
+    },
+    {
+      key: "bynolo_public_two",
+      label: "byNolo Public Two",
+      link_url: "https://discord.com/channels/public-two",
+      description: "Open watch room two.",
+    },
+  ],
+  parties: [
+    {
+      id: 9,
+      weekly_drop_id: 11,
+      title: "Friday Server Watch",
+      host_mode: "bynolo_discord",
+      status: "scheduled",
+      scheduled_for: "2026-06-07T23:00:00Z",
+      timezone_label: "America/Toronto",
+      region: "Canada",
+      platform: "Discord",
+      capacity: null,
+      notes: "Open watch room.",
+      visibility_hint: "public",
+      host_display_name: "tester",
+      destination_label: "byNolo Public One",
+      destination_url: "https://discord.com/channels/public-one",
+      destination_description: "Open watch room one.",
+      discord_channel_key: "bynolo_public_one",
+      rsvp_count: 3,
+      viewer_rsvp_status: null,
+      can_edit: false,
+      can_cancel: false,
+      is_past: false,
+    },
+  ],
+};
+
 const currentDrop = {
   id: 11,
   movie: {
@@ -124,6 +173,9 @@ function mockDiscussionRequests() {
     if (path.includes("/api/v1/drops/past")) {
       return Promise.resolve({ data: [pastDrop] });
     }
+    if (path.includes("/api/v1/watch-parties/current")) {
+      return Promise.resolve({ data: watchPartyBoard });
+    }
     if (path.includes("/api/v1/results/10/reviews")) {
       return Promise.resolve({ data: { items: [review], total: 1, tab: "spoiler-free", sort: "top" } });
     }
@@ -143,17 +195,17 @@ function mockDiscussionRequests() {
   });
 }
 
-function renderPage(path = "/discussions") {
+function renderPage(path = "/community") {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/discussions" element={<DiscussionsPage />} />
+        <Route path="/community" element={<DiscussionsPage />} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
-describe("DiscussionsPage", () => {
+describe("Community page", () => {
   beforeEach(() => {
     authUser = { id: 1, username: "tester", is_admin: false };
     loginMock.mockClear();
@@ -168,17 +220,24 @@ describe("DiscussionsPage", () => {
       expect(screen.getByRole("heading", { name: "Current Feature" })).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Recent Discussions")).toBeInTheDocument();
+    expect(screen.getByText("Recent Drops")).toBeInTheDocument();
     expect(screen.getByText("Past Feature")).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText("A sharp community take.")).toBeInTheDocument();
     });
+    expect(screen.getByText("Ratings stay hidden here until the voting period closes. Text reviews, replies, likes, and reports are still open.")).toBeInTheDocument();
+    expect(screen.getByText("Rating hidden until voting closes")).toBeInTheDocument();
+    expect(screen.getByText("Hidden")).toBeInTheDocument();
+    expect(screen.queryByText("Community Favorite")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Spoiler-Free/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Friday Server Watch")).toBeInTheDocument();
+    });
   });
 
   it("opens spoiler query links on the spoiler tab without bypassing the gate", async () => {
     mockDiscussionRequests();
-    renderPage("/discussions?tab=spoilers");
+    renderPage("/community?tab=spoilers");
 
     await waitFor(() => {
       expect(screen.getByText("You are entering the Spoiler Zone")).toBeInTheDocument();
@@ -206,6 +265,9 @@ describe("DiscussionsPage", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Past Feature" })).toBeInTheDocument();
     });
+    expect(screen.queryByText("Rating hidden until voting closes")).not.toBeInTheDocument();
+    expect(screen.getByText("Community Favorite")).toBeInTheDocument();
+    expect(screen.getByText("Rated 90 • Top Rated")).toBeInTheDocument();
   });
 
   it("allows signed-out readers to view discussions", async () => {
@@ -220,5 +282,6 @@ describe("DiscussionsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("A sharp community take.")).toBeInTheDocument();
     });
+    expect(screen.getByText("Watch parties are members-only in v1 so the board stays focused on the current crew and current drop.")).toBeInTheDocument();
   });
 });

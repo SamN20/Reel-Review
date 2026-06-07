@@ -32,8 +32,8 @@ export function SiteFooter() {
           <button onClick={() => navigate("/leaderboards")} className="hover:text-white transition-colors">
             Leaderboards
           </button>
-          <button onClick={() => navigate("/discussions")} className="hover:text-white transition-colors">
-            Discussions
+          <button onClick={() => navigate("/community")} className="hover:text-white transition-colors">
+            Community
           </button>
           <button onClick={() => navigate("/roadmap")} className="hover:text-white transition-colors">
             Roadmap
