@@ -7,7 +7,8 @@ If --backup-file is not provided the script lists files in BACKUP_DIR (default: 
 and prompts you to choose one.
 
 The script reads Postgres connection vars from the environment: POSTGRES_USER, POSTGRES_DB.
-It runs: docker compose ... exec -T db psql -U USER -d DB
+It resets the target schema by default, then runs:
+docker compose ... exec -T db psql -U USER -d DB
 and streams the SQL file into the container.
 """
 from __future__ import annotations
@@ -72,15 +73,13 @@ def choose_file(files: list[Path]) -> Optional[Path]:
         print("Invalid choice — try again.")
 
 
-def run_restore(
-    backup_file: Path,
+def build_psql_cmd(
     pg_user: str,
     pg_db: str,
     compose_file: str,
     project_name: str | None,
     env_file: str | None,
-) -> int:
-    print(f"Restoring '{backup_file}' into database '{pg_db}' as user '{pg_user}'")
+) -> list[str]:
     cmd = ["docker", "compose"]
     if env_file:
         cmd.extend(["--env-file", env_file])
@@ -94,12 +93,47 @@ def run_restore(
             "-T",
             "db",
             "psql",
+            "-v",
+            "ON_ERROR_STOP=1",
             "-U",
             pg_user,
             "-d",
             pg_db,
         ]
     )
+    return cmd
+
+
+def run_sql(sql: str, cmd: list[str]) -> int:
+    proc = subprocess.run(cmd, input=sql.encode("utf-8"))
+    return proc.returncode
+
+
+def run_restore(
+    backup_file: Path,
+    pg_user: str,
+    pg_db: str,
+    compose_file: str,
+    project_name: str | None,
+    env_file: str | None,
+    reset_schema: bool,
+) -> int:
+    print(f"Restoring '{backup_file}' into database '{pg_db}' as user '{pg_user}'")
+    cmd = build_psql_cmd(pg_user, pg_db, compose_file, project_name, env_file)
+
+    if reset_schema:
+        print("Resetting target public schema before restore")
+        reset_sql = f"""
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO {pg_user};
+GRANT ALL ON SCHEMA public TO PUBLIC;
+"""
+        reset_code = run_sql(reset_sql, cmd)
+        if reset_code != 0:
+            return reset_code
+
+    print("Streaming backup into Postgres")
 
     # Stream the file into the psql command via stdin
     with backup_file.open("rb") as fh:
@@ -114,6 +148,7 @@ def main() -> int:
     ap.add_argument("--compose-file", default="docker-compose.prod.yml", help="Compose file to target")
     ap.add_argument("--project-name", default=os.environ.get("COMPOSE_PROJECT_NAME"), help="Compose project name to target")
     ap.add_argument("--env-file", default=os.environ.get("APP_ENV_FILE"), help="Compose env file to target")
+    ap.add_argument("--keep-existing", action="store_true", help="Do not reset the target public schema before restore")
     ap.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
     args = ap.parse_args()
 
@@ -153,7 +188,10 @@ def main() -> int:
         return 4
 
     if not args.yes:
-        confirm = input(f"Confirm restore of '{backup_path.name}' into '{pg_db}'? This will overwrite data. (yes/NO): ")
+        confirm = input(
+            f"Confirm restore of '{backup_path.name}' into '{pg_db}'? "
+            "This will replace the target public schema. (yes/NO): "
+        )
         if confirm.strip().lower() != "yes":
             print("Restore cancelled.")
             return 0
@@ -165,6 +203,7 @@ def main() -> int:
         args.compose_file,
         args.project_name,
         args.env_file,
+        not args.keep_existing,
     )
     if code == 0:
         print("Restore completed successfully.")

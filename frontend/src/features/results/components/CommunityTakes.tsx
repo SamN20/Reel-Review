@@ -27,6 +27,7 @@ interface CommunityTakesProps {
   initialReviews: Review[];
   officialScore: number;
   userScore: number | null;
+  initialTab?: ReviewTab;
 }
 
 export function CommunityTakes({
@@ -34,8 +35,9 @@ export function CommunityTakes({
   initialReviews,
   officialScore,
   userScore,
+  initialTab = "spoiler-free",
 }: CommunityTakesProps) {
-  const [activeTab, setActiveTab] = useState<ReviewTab>("spoiler-free");
+  const [activeTab, setActiveTab] = useState<ReviewTab>(initialTab);
   const [activeSort, setActiveSort] = useState<ReviewSort>("top");
   const [showSpoilers, setShowSpoilers] = useState(false);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
@@ -74,7 +76,7 @@ export function CommunityTakes({
     return () => window.clearTimeout(timeoutId);
   }, [refreshReviews]);
 
-  const { user } = useAuth();
+  const { user, login } = useAuth();
 
   const activeReviews = reviews;
   const targetScore = userScore ?? officialScore;
@@ -164,6 +166,12 @@ export function CommunityTakes({
         updateReplyNode(childReply, replyId, likeCount, liked),
       ),
     };
+  };
+
+  const requireSignedIn = () => {
+    if (user) return true;
+    setError("Sign in to like, reply, or report community takes.");
+    return false;
   };
 
   return (
@@ -285,10 +293,12 @@ export function CommunityTakes({
                   officialScore={officialScore}
                   isHighestMatch={review.id === highestMatchReviewId}
                   onToggleLike={async (reviewId) => {
+                    if (!requireSignedIn()) return;
                     const response = await toggleReviewLike(reviewId);
                     updateReviewLikeState(reviewId, response.like_count, response.liked);
                   }}
                   onToggleReplyLike={async (replyId) => {
+                    if (!requireSignedIn()) return;
                     const response = await toggleReplyLike(replyId);
                     setReviews((currentReviews) =>
                       updateReplyLikeState(
@@ -300,14 +310,20 @@ export function CommunityTakes({
                     );
                   }}
                   onReportReview={async (reviewId, reason) => {
+                    if (!requireSignedIn()) return;
                     await reportReview(reviewId, reason);
                     await refreshReviews();
                   }}
                   onReportReply={async (replyId, reason) => {
+                    if (!requireSignedIn()) return;
                     await reportReply(replyId, reason);
                     await refreshReviews();
                   }}
                   onSubmitReply={async (reviewId, body, parentReplyId) => {
+                    if (!requireSignedIn()) {
+                      login();
+                      return;
+                    }
                     await createReply(reviewId, body, parentReplyId ?? null);
                     await refreshReviews();
                   }}
@@ -359,10 +375,12 @@ export function CommunityTakes({
                     officialScore={officialScore}
                     isHighestMatch={review.id === highestMatchReviewId}
                     onToggleLike={async (reviewId) => {
+                      if (!requireSignedIn()) return;
                       const response = await toggleReviewLike(reviewId);
                       updateReviewLikeState(reviewId, response.like_count, response.liked);
                     }}
                     onToggleReplyLike={async (replyId) => {
+                      if (!requireSignedIn()) return;
                       const response = await toggleReplyLike(replyId);
                       setReviews((currentReviews) =>
                         updateReplyLikeState(
@@ -374,14 +392,20 @@ export function CommunityTakes({
                       );
                     }}
                     onReportReview={async (reviewId, reason) => {
+                      if (!requireSignedIn()) return;
                       await reportReview(reviewId, reason);
                       await refreshReviews();
                     }}
                     onReportReply={async (replyId, reason) => {
+                      if (!requireSignedIn()) return;
                       await reportReply(replyId, reason);
                       await refreshReviews();
                     }}
                     onSubmitReply={async (reviewId, body, parentReplyId) => {
+                      if (!requireSignedIn()) {
+                        login();
+                        return;
+                      }
                       await createReply(reviewId, body, parentReplyId ?? null);
                       await refreshReviews();
                     }}
