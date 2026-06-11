@@ -61,22 +61,6 @@ class FakeSubquery:
         )
 
 
-class FakeActorSession:
-    def __init__(self, results):
-        self._results = results
-        self._calls = 0
-        self._subquery = FakeSubquery()
-
-    def query(self, *args, **kwargs):
-        if args and getattr(args[0], "__tablename__", None) == "admin_settings":
-            return FakeQuery([])
-        if self._calls == 0:
-            self._calls += 1
-            return FakeQuery([], subquery=self._subquery)
-        self._calls += 1
-        return FakeQuery(self._results)
-
-
 class FakeSession:
     def __init__(self, results, subquery=None):
         self._results = results
@@ -240,19 +224,76 @@ def test_get_divisive_movies_rounding():
     ]
 
 
-def test_get_top_actors_rounding():
-    actors = [
-        SimpleNamespace(name="Actor One", profile_path="/actor.jpg", average_score=87.77, movie_count=6),
-    ]
-    fake_db = FakeActorSession(actors)
+def test_get_top_actors_rounding(test_client, db: Session):
+    movie_one = Movie(
+        title="Actor Showcase 1",
+        cast=[
+            {"name": "Actor One", "profile_path": "/actor.jpg", "order": 0},
+            {"name": "Actor Two", "order": 1},
+        ],
+    )
+    movie_two = Movie(
+        title="Actor Showcase 2",
+        cast=[
+            {"name": "Actor One", "profile_path": "/actor.jpg", "order": 0},
+        ],
+    )
+    db.add_all([movie_one, movie_two])
+    db.commit()
 
-    response = leaderboards_routes.get_top_actors(fake_db)
+    user = User(keyn_id="5", username="actorfan", email="actorfan@example.com")
+    db.add(user)
+    db.commit()
 
-    assert response == [
-        {
-            "name": "Actor One",
-            "profile_path": "/actor.jpg",
-            "average_score": 87.8,
-            "movie_count": 6,
-        }
-    ]
+    db.add_all(
+        [
+            Rating(user_id=user.id, movie_id=movie_one.id, overall_score=88),
+            Rating(user_id=user.id, movie_id=movie_one.id, overall_score=87),
+            Rating(user_id=user.id, movie_id=movie_two.id, overall_score=88),
+            Rating(user_id=user.id, movie_id=movie_two.id, overall_score=88),
+            Rating(user_id=user.id, movie_id=movie_two.id, overall_score=88),
+        ]
+    )
+    db.commit()
+
+    response = test_client.get("/api/v1/leaderboards/actors")
+
+    assert response.status_code == 200
+    assert response.json()[0] == {
+        "name": "Actor One",
+        "profile_path": "/actor.jpg",
+        "average_score": 87.8,
+        "movie_count": 2,
+    }
+
+
+def test_get_top_actors_only_counts_principal_cast(test_client, db: Session):
+    movie = Movie(
+        title="Ensemble Movie",
+        cast=[
+            {"name": "Lead One", "order": 0},
+            {"name": "Lead Two", "order": 1},
+            {"name": "Lead Three", "order": 2},
+            {"name": "Lead Four", "order": 3},
+            {"name": "Lead Five", "order": 4},
+            {"name": "Supporting Six", "order": 5},
+        ],
+    )
+    db.add(movie)
+    db.commit()
+
+    user = User(keyn_id="6", username="ensemblefan", email="ensemble@example.com")
+    db.add(user)
+    db.commit()
+
+    for score in (90, 92, 94):
+        db.add(Rating(user_id=user.id, movie_id=movie.id, overall_score=score))
+    db.commit()
+
+    response = test_client.get("/api/v1/leaderboards/actors")
+
+    assert response.status_code == 200
+    actor_names = [actor["name"] for actor in response.json()]
+    assert "Lead One" in actor_names
+    assert "Lead Five" in actor_names
+    assert "Supporting Six" not in actor_names

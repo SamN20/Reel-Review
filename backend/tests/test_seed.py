@@ -22,7 +22,14 @@ def test_normalize_tmdb_movie_keeps_core_fields_and_provider_subset():
             "poster_path": None,
             "backdrop_path": None,
             "genres": [{"id": 878, "name": "Science Fiction"}],
-            "credits": {"cast": [{"name": f"Actor {i}"} for i in range(12)]},
+            "credits": {
+                "cast": [
+                    {"name": "Later Billed", "order": 4},
+                    {"name": "Top Billed", "order": 0},
+                    {"name": "Second Billed", "order": 1},
+                ]
+                + [{"name": f"Actor {i}"} for i in range(9)]
+            },
             "keywords": {"keywords": [{"id": 1, "name": "dream"}]},
             "watch/providers": {
                 "results": {
@@ -44,4 +51,9 @@ def test_normalize_tmdb_movie_keeps_core_fields_and_provider_subset():
     assert movie["poster_path"] == "/poster.jpg"
     assert movie["backdrop_path"] == "/backdrop.jpg"
     assert len(movie["cast"]) == 10
+    assert [member["name"] for member in movie["cast"][:3]] == [
+        "Top Billed",
+        "Second Billed",
+        "Later Billed",
+    ]
     assert set(movie["watch_providers"].keys()) == {"CA", "US"}

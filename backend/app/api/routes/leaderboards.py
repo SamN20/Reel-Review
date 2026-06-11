@@ -10,6 +10,7 @@ from app.models.rating import Rating
 from app.models.movie import Movie
 from app.models.weekly_drop import WeeklyDrop
 from app.services.admin_settings import DEFAULT_LEADERBOARD_SETTINGS, get_setting
+from app.services.movie_metadata import PRINCIPAL_CAST_LIMIT, select_prioritized_cast
 
 router = APIRouter()
 
@@ -130,36 +131,57 @@ class LeaderboardActor(BaseModel):
 def get_top_actors(db: Session = Depends(deps.get_db)):
     settings = get_setting(db, "leaderboards", DEFAULT_LEADERBOARD_SETTINGS)
     min_ratings = get_min_ratings(settings, "actors", DEFAULT_LEADERBOARD_SETTINGS["actors"]["min_ratings"])
-    # Unnest the cast JSONB array
-    cast_elem = func.jsonb_array_elements(Movie.cast).column_valued("cast_elem")
-    
-    # We use a subquery to unnest first
-    subquery = (
+    movie_scores = (
         db.query(
             Movie.id.label("movie_id"),
-            cast_elem.op("->>")("name").label("name"),
-            cast_elem.op("->>")("profile_path").label("profile_path")
+            Movie.cast.label("cast"),
+            func.sum(Rating.overall_score).label("score_sum"),
+            func.count(Rating.id).label("rating_count"),
         )
-        .select_from(Movie)
+        .join(Rating, Rating.movie_id == Movie.id)
         .filter(Movie.cast.isnot(None))
-        .subquery()
-    )
-    
-    actors = (
-        db.query(
-            subquery.c.name,
-            func.max(subquery.c.profile_path).label("profile_path"),
-            func.avg(Rating.overall_score).label("average_score"),
-            func.count(func.distinct(Rating.movie_id)).label("movie_count")
-        )
-        .join(Rating, Rating.movie_id == subquery.c.movie_id)
-        .group_by(subquery.c.name)
-        .having(func.count(Rating.id) >= min_ratings)
-        .order_by(desc("average_score"))
-        .limit(20)
+        .group_by(Movie.id)
         .all()
     )
-    return [{"name": a.name, "profile_path": a.profile_path, "average_score": round(a.average_score, 1), "movie_count": a.movie_count} for a in actors]
+
+    actor_totals: dict[str, dict] = {}
+    for movie in movie_scores:
+        principal_cast = select_prioritized_cast(movie.cast, limit=PRINCIPAL_CAST_LIMIT)
+        for cast_member in principal_cast:
+            name = cast_member.get("name")
+            if not name:
+                continue
+
+            actor = actor_totals.setdefault(
+                name,
+                {
+                    "name": name,
+                    "profile_path": cast_member.get("profile_path"),
+                    "score_sum": 0,
+                    "rating_count": 0,
+                    "movie_ids": set(),
+                },
+            )
+            if not actor["profile_path"] and cast_member.get("profile_path"):
+                actor["profile_path"] = cast_member.get("profile_path")
+            actor["score_sum"] += movie.score_sum or 0
+            actor["rating_count"] += movie.rating_count or 0
+            actor["movie_ids"].add(movie.movie_id)
+
+    ranked_actors = [
+        {
+            "name": actor["name"],
+            "profile_path": actor["profile_path"],
+            "average_score": round(actor["score_sum"] / actor["rating_count"], 1),
+            "movie_count": len(actor["movie_ids"]),
+        }
+        for actor in actor_totals.values()
+        if actor["rating_count"] >= min_ratings
+    ]
+    ranked_actors.sort(
+        key=lambda actor: (-actor["average_score"], -actor["movie_count"], actor["name"])
+    )
+    return ranked_actors[:20]
 
 class CategoryLeaderboardMovie(BaseModel):
     id: int

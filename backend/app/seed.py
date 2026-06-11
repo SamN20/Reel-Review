@@ -12,7 +12,7 @@ from app.models.rating import Rating
 from app.models.user import User
 from app.models.weekly_drop import WeeklyDrop
 from app.services.drop_scheduler import DropSchedulerService
-from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions
+from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions, select_prioritized_cast
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -138,7 +138,7 @@ def normalize_tmdb_movie(data: dict) -> dict:
         "poster_path": poster_path,
         "backdrop_path": backdrop_path,
         "genres": data.get("genres", []),
-        "cast": data.get("credits", {}).get("cast", [])[:10],
+        "cast": select_prioritized_cast(data.get("credits", {}).get("cast", [])),
         "keywords": data.get("keywords", {}).get("keywords", []),
         "watch_providers": watch_providers,
         "watch_providers_updated_at": datetime.now(timezone.utc),

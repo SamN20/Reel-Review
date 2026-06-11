@@ -34,7 +34,12 @@ from app.services.admin_settings import (
 )
 from app.services.drop_scheduler import DropSchedulerService
 from app.services.drop_selection import DROP_SELECTION_SETTINGS_KEY, DropSelectionService, normalize_drop_selection_settings
-from app.services.movie_metadata import extract_director_name, extract_watch_provider_regions, extract_youtube_trailer_key
+from app.services.movie_metadata import (
+    extract_director_name,
+    extract_watch_provider_regions,
+    extract_youtube_trailer_key,
+    select_prioritized_cast,
+)
 from app.services.ratings_calculator import RatingsCalculator
 from app.services.nolofication import nolofication
 
@@ -371,7 +376,7 @@ async def get_tmdb_movie_details(tmdb_id: int):
             "overview": data.get("overview"),
             "director_name": extract_director_name(data.get("credits")),
             "genres": data.get("genres", []),
-            "cast": data.get("credits", {}).get("cast", [])[:10] if data.get("credits") else [],
+            "cast": select_prioritized_cast(data.get("credits", {}).get("cast", []) if data.get("credits") else []),
             "keywords": data.get("keywords", {}).get("keywords", []) if data.get("keywords") else [],
             "watch_providers": watch_providers,
             "trailer_youtube_key": extract_youtube_trailer_key(data.get("videos")),

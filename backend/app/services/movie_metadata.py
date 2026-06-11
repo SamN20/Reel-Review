@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 WATCH_PROVIDER_REFRESH_INTERVAL = timedelta(days=30)
+DISPLAY_CAST_LIMIT = 10
+PRINCIPAL_CAST_LIMIT = 5
 
 
 def extract_director_name(credits: dict[str, Any] | None = None, cast: list[dict[str, Any]] | None = None) -> str | None:
@@ -22,6 +24,25 @@ def extract_director_name(credits: dict[str, Any] | None = None, cast: list[dict
         if member.get("job") == "Director":
             return member.get("name")
     return None
+
+
+def select_prioritized_cast(
+    cast: list[dict[str, Any]] | None,
+    *,
+    limit: int = DISPLAY_CAST_LIMIT,
+) -> list[dict[str, Any]]:
+    if not cast or limit <= 0:
+        return []
+
+    def cast_sort_key(item_with_index: tuple[int, dict[str, Any]]) -> tuple[int, int]:
+        index, member = item_with_index
+        order = member.get("order")
+        if isinstance(order, int):
+            return (0, order)
+        return (1, index)
+
+    sorted_cast = sorted(enumerate(cast), key=cast_sort_key)
+    return [member for _, member in sorted_cast[:limit]]
 
 
 def get_tmdb_headers() -> dict[str, str]:
